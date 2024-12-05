@@ -1,37 +1,35 @@
 #!/usr/bin/env python
+import itertools as it
 import os
 import sys
 from collections import UserDict
-from enum import Enum
-
-
-class Color(Enum):
-    White = 0
-    Gray = 1
-    Black = 2
 
 
 class Node:
     def __init__(self, value):
         self.value = value
         self.neighbors = []
-        self.color = Color.White
+        self.visited = False
 
     def __eq__(self, other):
         return self.value == other.value
 
     def __str__(self):
         result = []
-        result.append(f"{self.value}:")
+        result.append(f"{self.value}")
+        if self.visited:
+            result.append("(v)")
+        else:
+            result.append("( )")
+        result.append(":")
         for value in self.neighbors:
-            result.append(f"{value}")
-        return " ".join(result)
+            result.append(f" {value}")
+        return "".join(result)
 
 
 class Graph(UserDict):
-
     def __str__(self):
-        return "\n".join(str(x) for x in self.data.values())
+        return "\n".join(str(x) for x in sorted(self.data.values(), key=lambda x: x.value))
 
     def add_pair(self, value_1, value_2):
         """Add a pair of values to the graph, where value_1 points to value_2.
@@ -42,37 +40,23 @@ class Graph(UserDict):
             self.data[value_2] = Node(value_2)
         self.data[value_1].neighbors.append(value_2)
 
-    def tsort(self):
-        result = []
-        start = None
+    def is_reachable(self, src, dest):
+        """Walk the graph to determine whether value_2 is reachable from
+        value_1."""
 
-        def has_unvisited_nodes():
-            for node in self.data.values():
-                if node.color == Color.White:
-                    return True
+        def walk(node: Node) -> bool:
+            if node.value == dest:
+                return True
+            node.visited = True
+            for id in node.neighbors:
+                if not self.data[id].visited:
+                    if walk(self.data[id]):
+                        return True
             return False
 
-        def visit(node):
-            if node.color == Color.Black:
-                return
-            if node.color == Color.Gray:
-                raise RuntimeError("Graph has a cycle.")
-            node.color = Color.Gray
-            for id in node.neighbors:
-                visit(self.data[id])
-            node.color = Color.Black
-            result.append(node.value)
-
         for node in self.data.values():
-            node.color = Color.White
-
-        while has_unvisited_nodes():
-            for node in self.data.values():
-                if node.color == Color.White:
-                    start = node
-                    break
-            visit(start)
-        return result[::-1]
+            node.visited = False
+        return walk(self.data[src])
 
 
 def parse_pair(pair_str):
@@ -84,17 +68,16 @@ def parse_pages(pages_str):
     return [int(x) for x in pages_str.split(",")]
 
 
-def verify_pages(pages, rule):
-    subrule = rule
-    for x in pages:
-        try:
-            subrule = subrule[subrule.index(x):]
-        except ValueError:
+def verify_pages(graph, pages):
+    for page_1, page_2 in it.pairwise(pages):
+        print(page_1, page_2)
+        if graph.is_reachable(page_2, page_1):
             return False
     return True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    sys.argv = ["penis", "input"]
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} input", file=sys.stderr)
         exit(1)
@@ -109,12 +92,13 @@ if __name__ == '__main__':
         order_section, pages_section = data.split("\n\n")
         for pair_str in order_section.split():
             graph.add_pair(*parse_pair(pair_str))
-        print(graph)
-        rule = graph.tsort()
-        for pages_str in pages_section.split():
+        for i, pages_str in enumerate(pages_section.split()):
+            if i != 3:
+                continue
             pages = parse_pages(pages_str)
-            if verify_pages(pages, rule):
-                sum += pages[len(pages)//2]
-
-    print(graph)
-    print(f"Sum of middle: {sum}")
+            valid = verify_pages(graph, pages)
+            print(f"{valid}: {pages}")
+            if valid:
+                sum += pages[len(pages) // 2]
+        print(graph)
+        print(f"Sum of center: {sum}")
