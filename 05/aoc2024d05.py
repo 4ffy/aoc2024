@@ -3,6 +3,7 @@ import itertools as it
 import os
 import sys
 from collections import UserDict
+from functools import cmp_to_key
 
 
 class Node:
@@ -39,6 +40,12 @@ class Graph(UserDict):
     def has_neighbor(self, value_1, value_2):
         return value_2 in self.data[value_1].neighbors
 
+    def compare_nodes(self, value_1, value_2):
+        # A node is "greater" than another if it has no connection.
+        if value_2 in self.data[value_1].neighbors:
+            return -1
+        return 1
+
 
 def parse_pair(pair_str):
     left, right = pair_str.split("|")
@@ -56,6 +63,10 @@ def verify_pages(graph, pages):
     return True
 
 
+def fix_invalid(graph, pages):
+    return list(sorted(pages, key=cmp_to_key(graph.compare_nodes)))
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} input", file=sys.stderr)
@@ -66,6 +77,7 @@ if __name__ == "__main__":
 
     graph = Graph()
     sum = 0
+    fixed_sum = 0
     with open(sys.argv[1], "rt") as f:
         data = f.read()
         order_section, pages_section = data.split("\n\n")
@@ -76,4 +88,8 @@ if __name__ == "__main__":
             valid = verify_pages(graph, pages)
             if valid:
                 sum += pages[len(pages) // 2]
-        print(f"Sum of center: {sum}")
+            else:
+                fixed = fix_invalid(graph, pages)
+                fixed_sum += fixed[len(fixed) // 2]
+        print(f"Sum of valid: {sum}")
+        print(f"Sum of fixed: {fixed_sum}")
