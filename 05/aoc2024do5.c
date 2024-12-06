@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <regex.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,12 +37,6 @@
 		}                                                                      \
 	} while (0)
 
-typedef enum {
-	COLOR_WHITE,
-	COLOR_GRAY,
-	COLOR_BLACK,
-} color_t;
-
 typedef struct int_array_s int_array_t;
 struct int_array_s {
 	int *data;
@@ -53,7 +48,6 @@ typedef struct node_s node_t;
 struct node_s {
 	int value;
 	int_array_t neighbors;
-	color_t color;
 };
 
 typedef struct graph_s graph_t;
@@ -67,7 +61,6 @@ node_t node_new(int value)
 {
 	node_t node = {0};
 	node.value = value;
-	node.color = COLOR_WHITE;
 	array_init(node.neighbors, int);
 	return node;
 }
@@ -83,66 +76,60 @@ void graph_print(graph_t g)
 	}
 }
 
-bool graph_has_unvisited(graph_t g)
+int comp_int(void const *a, void const *b)
 {
-	for (size_t i = 0; i < g.size; i++) {
-		if (g.data[i].color == COLOR_WHITE) {
-			return true;
-		}
-	}
-	return false;
+	int arg1 = *(int const *)a;
+	int arg2 = *(int const *)b;
+	if (arg1 < arg2)
+		return -1;
+	if (arg1 > arg2)
+		return 1;
+	return 0;
+}
+
+int comp_node(void const *a, void const *b)
+{
+	node_t arg1 = *(node_t const *)a;
+	node_t arg2 = *(node_t const *)b;
+	if (arg1.value < arg2.value)
+		return -1;
+	if (arg1.value > arg2.value)
+		return 1;
+	return 0;
 }
 
 node_t *graph_find_node(graph_t g, int value)
 {
-	// I could maintain a sorted list or something to speed this up.
-	for (size_t i = 0; i < g.size; i++) {
-		if (g.data[i].value == value) {
-			return g.data + i;
-		}
-	}
-	return NULL;
+	node_t temp = {.value = value};
+	return (node_t *)bsearch(&temp, g.data, g.size, sizeof(node_t), comp_node);
 }
 
-void tsort_visit(graph_t g, node_t *node, int_array_t *result)
+bool graph_has_neighbor(graph_t g, int left, int right)
 {
+	node_t *node = graph_find_node(g, left);
 	if (node == NULL) {
-		return;
+		return false;
 	}
-	if (node->color == COLOR_BLACK) {
-		return;
-	}
-	if (node->color == COLOR_GRAY) {
-		fprintf(stderr, "Graph has a cycle.\n");
-		exit(1);
-	}
-	node->color = COLOR_GRAY;
-	for (size_t i = 0; i < node->neighbors.size; i++) {
-		node_t *neighbor = graph_find_node(g, node->neighbors.data[i]);
-		tsort_visit(g, neighbor, result);
-	}
-	node->color = COLOR_BLACK;
-	array_push((*result), int, node->value);
+	int *result = (int *)bsearch(&right, node->neighbors.data,
+								 node->neighbors.size, sizeof(int), comp_int);
+	return result != NULL;
 }
 
-int_array_t tsort(graph_t g)
+void graph_add_pair(graph_t *g, int left, int right)
 {
-	int_array_t result = {0};
-	array_init(result, int);
-	for (size_t i = 0; i < g.size; i++) {
-		g.data[i].color = COLOR_WHITE;
+	if (!graph_find_node(*g, left)) {
+		node_t new_node = node_new(left);
+		array_push((*g), node_t, new_node);
 	}
-	node_t *start = NULL;
-	while (graph_has_unvisited(g)) {
-		for (size_t i = 0; i < g.size; i++) {
-			if (g.data[i].color == COLOR_WHITE) {
-				start = g.data + i;
-				break;
-			}
-		}
-		tsort_visit(g, start, &result);
+	if (!graph_find_node(*g, right)) {
+		node_t new_node = node_new(right);
+		array_push((*g), node_t, new_node);
 	}
-	return result;
+	qsort(g->data, g->size, sizeof(node_t), comp_node);
+
+	node_t *node = graph_find_node(*g, left);
+	array_push(node->neighbors, int, right);
+	qsort(node->neighbors.data, node->neighbors.size, sizeof(int), comp_int);
 }
 
 void fclose_wrap(FILE **f) { fclose(*f); }
@@ -176,6 +163,26 @@ char *read_file(char const *filename)
 	return buf;
 }
 
+int_array_t parse_rules(char const *src)
+{
+	[[gnu::cleanup(regfree)]]
+	regex_t re = {0};
+	regcomp(&re, "\\([[:digit:]]\\{1,\\}\\)|\\([[:digit:]]\\{1,\\}\\)", 0);
+	int_array_t result = {0};
+	array_init(result, int);
+
+	char const *substr = src;
+	regmatch_t matches[3];
+	while (!regexec(&re, substr, 3, matches, 0)) {
+		int left = (int)strtol(substr + matches[1].rm_so, NULL, 10);
+		int right = (int)strtol(substr + matches[2].rm_so, NULL, 10);
+		array_push(result, int, left);
+		array_push(result, int, right);
+		substr += matches[0].rm_eo;
+	}
+	return result;
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2) {
@@ -188,28 +195,24 @@ int main(int argc, char *argv[])
 	graph_t graph = {0};
 	array_init(graph, node_t);
 
-	for (int i = 0; i < 10; i++) {
-		node_t node = node_new(i);
-		array_push(graph, node_t, node);
+	int_array_t pairs = parse_rules(data);
+	for (size_t i = 0; i < pairs.size; i += 2) {
+		graph_add_pair(&graph, pairs.data[i], pairs.data[i + 1]);
 	}
-	array_push(graph.data[1].neighbors, int, 2);
-	array_push(graph.data[1].neighbors, int, 4);
-	array_push(graph.data[1].neighbors, int, 8);
-	array_push(graph.data[2].neighbors, int, 0);
-	array_push(graph.data[2].neighbors, int, 3);
-	array_push(graph.data[5].neighbors, int, 8);
-	array_push(graph.data[5].neighbors, int, 9);
-	array_push(graph.data[6].neighbors, int, 1);
-	array_push(graph.data[6].neighbors, int, 5);
-	array_push(graph.data[8].neighbors, int, 7);
-	array_push(graph.data[4].neighbors, int, 3);
+	array_deinit(pairs);
+
 	graph_print(graph);
 
-	int_array_t sorted = tsort(graph);
-	for (size_t i = 0; i < sorted.size; i++) {
-		printf("%d\n", sorted.data[i]);
-	}
-	array_deinit(sorted);
+	printf("%d -> %d: %s\n", 13, 29,
+		   graph_has_neighbor(graph, 13, 29) ? "true" : "false");
+	printf("%d -> %d: %s\n", 61, 29,
+		   graph_has_neighbor(graph, 61, 29) ? "true" : "false");
+	printf("%d -> %d: %s\n", 97, 53,
+		   graph_has_neighbor(graph, 97, 53) ? "true" : "false");
+	printf("%d -> %d: %s\n", 29, 13,
+		   graph_has_neighbor(graph, 29, 13) ? "true" : "false");
+	printf("%d -> %d: %s\n", 47, 75,
+		   graph_has_neighbor(graph, 47, 75) ? "true" : "false");
 
 	for (size_t i = 0; i < graph.size; i++) {
 		array_deinit(graph.data[i].neighbors);
