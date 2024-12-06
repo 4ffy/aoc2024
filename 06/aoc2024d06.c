@@ -246,41 +246,46 @@ int grid_count_visited(grid_t *grid)
 
 bool grid_obstacle_creates_loop(grid_t *grid, long y, long x)
 {
-	cell_t *cell = grid_get(grid, y, x);
-	if (!cell->is_visited) {
+	if (y == grid->start_y && x == grid->start_x) {
 		return false;
 	}
-	// North
-	if (y - 1 > 0 && grid_get(grid, y - 1, x)->is_visited & DIR_WEST) {
+	cell_t *cell = grid_get(grid, y, x);
+	cell->is_obstacle = true;
+	if (grid_run(grid)) {
+		cell->is_obstacle = false;
 		return true;
 	}
-	// South
-	if (y + 1 < grid->height &&
-		grid_get(grid, y + 1, x)->is_visited & DIR_EAST) {
-		return true;
-	}
-	// West
-	if (x - 1 > 0 && grid_get(grid, y, x - 1)->is_visited & DIR_SOUTH) {
-		return true;
-	}
-	// East
-	if (x + 1 < grid->width &&
-		grid_get(grid, y, x + 1)->is_visited & DIR_NORTH) {
-		return true;
-	}
+	cell->is_obstacle = false;
 	return false;
+}
+
+//! Copy one grid to another. The latter should be uninitialized.
+void grid_copy(grid_t *from, grid_t *to)
+{
+	to->width = from->width;
+	to->height = from->height;
+	to->start_x = from->start_x;
+	to->start_y = from->start_y;
+	array_init(to->data, cell_t);
+	for (long i = 0; i < from->data.size; i++) {
+		array_push(to->data, cell_t, from->data.data[i]);
+	}
 }
 
 int grid_count_loop_add(grid_t *grid)
 {
+	grid_t copy = {0};
+	grid_copy(grid, &copy);
 	int sum = 0;
 	for (long y = 0; y < grid->height; y++) {
 		for (long x = 0; x < grid->width; x++) {
-			if (grid_obstacle_creates_loop(grid, y, x)) {
+			if (grid_get(grid, y, x)->is_visited &&
+				grid_obstacle_creates_loop(&copy, y, x)) {
 				sum++;
 			}
 		}
 	}
+	array_deinit(copy.data);
 	return sum;
 }
 
@@ -298,11 +303,10 @@ int main(int argc, char *argv[])
 	grid_print(&grid);
 	printf("\n");
 
-	int status = grid_run(&grid);
+	grid_run(&grid);
 	grid_print(&grid);
 	printf("\n");
 
-	printf("%s exit.\n", status == 0 ? "Normal" : "Loop");
 	printf("Cells visited: %d\n", grid_count_visited(&grid));
 	printf("Loops possible: %d\n", grid_count_loop_add(&grid));
 
