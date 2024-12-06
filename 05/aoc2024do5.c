@@ -275,6 +275,42 @@ int sum_valid(graph_t g, int_array_array_t pages_arr)
 	return sum;
 }
 
+int sum_invalid(graph_t g, int_array_array_t pages_arr)
+{
+	int sum = 0;
+	for (size_t i = 0; i < pages_arr.size; i++) {
+		int_array_t pages = pages_arr.data[i];
+		if (!pages_valid(g, pages)) {
+			int_array_t fixed = {0};
+			array_init(fixed, int);
+			for (size_t j = 0; j < pages.size; j++) {
+				array_push(fixed, int, pages.data[j]);
+			}
+
+			// Yeah! Bubble sort!
+			size_t n = fixed.size;
+			bool done = false;
+			while (!done) {
+				done = true;
+				for (size_t i = 1; i < n; i++) {
+					if (!graph_has_neighbor(g, fixed.data[i - 1],
+											fixed.data[i])) {
+						int temp = fixed.data[i - 1];
+						fixed.data[i - 1] = fixed.data[i];
+						fixed.data[i] = temp;
+						done = false;
+					}
+				}
+				n--;
+			}
+
+			sum += fixed.data[fixed.size / 2];
+			array_deinit(fixed);
+		}
+	}
+	return sum;
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2) {
@@ -300,6 +336,7 @@ int main(int argc, char *argv[])
 	// graph_print(graph);
 
 	printf("Sum of valid: %d\n", sum_valid(graph, pages));
+	printf("Sum of fixed: %d\n", sum_invalid(graph, pages));
 	for (size_t i = 0; i < pages.size; i++) {
 		array_deinit(pages.data[i]);
 	}
