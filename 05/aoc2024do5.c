@@ -44,6 +44,20 @@ struct int_array_s {
 	size_t cap;
 };
 
+typedef struct int_array_array_s int_array_array_t;
+struct int_array_array_s {
+	int_array_t *data;
+	size_t size;
+	size_t cap;
+};
+
+typedef struct string_array_s string_array_t;
+struct string_array_s {
+	char const **data;
+	size_t size;
+	size_t cap;
+};
+
 typedef struct node_s node_t;
 struct node_s {
 	int value;
@@ -163,6 +177,19 @@ char *read_file(char const *filename)
 	return buf;
 }
 
+string_array_t split_lines(char *src)
+{
+	string_array_t result = {0};
+	array_init(result, char *);
+	char *line = strtok(src, "\n");
+	while (line != NULL) {
+		array_push(result, char *, line);
+		line = strtok(NULL, "\n");
+	}
+	return result;
+}
+
+#if 0
 int_array_t parse_rules(char const *src)
 {
 	[[gnu::cleanup(regfree)]]
@@ -182,6 +209,69 @@ int_array_t parse_rules(char const *src)
 	}
 	return result;
 }
+#endif
+
+int_array_t parse_rules(string_array_t lines)
+{
+	[[gnu::cleanup(regfree)]]
+	regex_t re = {0};
+	regcomp(&re, "\\([[:digit:]]\\{1,\\}\\)|\\([[:digit:]]\\{1,\\}\\)", 0);
+	regmatch_t matches[3];
+	int_array_t result = {0};
+	array_init(result, int);
+
+	for (size_t i = 0; i < lines.size; i++) {
+		char const *str = lines.data[i];
+		if (!regexec(&re, str, 3, matches, 0)) {
+			int left = (int)strtol(str + matches[1].rm_so, NULL, 10);
+			int right = (int)strtol(str + matches[2].rm_so, NULL, 10);
+			array_push(result, int, left);
+			array_push(result, int, right);
+		}
+	}
+	return result;
+}
+
+bool has_comma(char const *str, size_t length)
+{
+	for (size_t i = 0; i < length; i++) {
+		if (str[i] == ',') {
+			return true;
+		}
+	}
+	return false;
+}
+
+int_array_array_t parse_pages(string_array_t lines)
+{
+	int_array_array_t result = {0};
+	array_init(result, int_array_t);
+
+	for (size_t i = 0; i < lines.size; i++) {
+		char const *line = lines.data[i];
+		size_t length = strlen(line);
+		if (has_comma(line, length)) {
+			int_array_t current = {0};
+			array_init(current, int);
+
+			char *copy = strdup(line);
+			if (copy == NULL) {
+				fprintf(stderr, "Out of memory.\n");
+				exit(1);
+			}
+			char *number = strtok(copy, ",");
+			while (number != NULL) {
+				int temp = (int)strtol(number, NULL, 10);
+				array_push(current, int, temp);
+				number = strtok(NULL, ",");
+			}
+			free((void *)copy);
+
+			array_push(result, int_array_t, current);
+		}
+	}
+	return result;
+}
 
 int main(int argc, char *argv[])
 {
@@ -195,14 +285,28 @@ int main(int argc, char *argv[])
 	graph_t graph = {0};
 	array_init(graph, node_t);
 
-	int_array_t pairs = parse_rules(data);
+	string_array_t lines = split_lines(data);
+	int_array_t pairs = parse_rules(lines);
 	for (size_t i = 0; i < pairs.size; i += 2) {
 		graph_add_pair(&graph, pairs.data[i], pairs.data[i + 1]);
 	}
 	array_deinit(pairs);
 
-	graph_print(graph);
+	int_array_array_t pages = parse_pages(lines);
+	for (size_t i = 0; i < pages.size; i++) {
+		for (size_t j = 0; j < pages.data[i].size; j++) {
+			printf("%d ", pages.data[i].data[j]);
+		}
+		printf("\n");
+	}
+	for (size_t i = 0; i < pages.size; i++) {
+		array_deinit(pages.data[i]);
+	}
 
+	array_deinit(pages);
+	array_deinit(lines);
+
+	graph_print(graph);
 	printf("%d -> %d: %s\n", 13, 29,
 		   graph_has_neighbor(graph, 13, 29) ? "true" : "false");
 	printf("%d -> %d: %s\n", 61, 29,
