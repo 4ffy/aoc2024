@@ -189,28 +189,6 @@ string_array_t split_lines(char *src)
 	return result;
 }
 
-#if 0
-int_array_t parse_rules(char const *src)
-{
-	[[gnu::cleanup(regfree)]]
-	regex_t re = {0};
-	regcomp(&re, "\\([[:digit:]]\\{1,\\}\\)|\\([[:digit:]]\\{1,\\}\\)", 0);
-	int_array_t result = {0};
-	array_init(result, int);
-
-	char const *substr = src;
-	regmatch_t matches[3];
-	while (!regexec(&re, substr, 3, matches, 0)) {
-		int left = (int)strtol(substr + matches[1].rm_so, NULL, 10);
-		int right = (int)strtol(substr + matches[2].rm_so, NULL, 10);
-		array_push(result, int, left);
-		array_push(result, int, right);
-		substr += matches[0].rm_eo;
-	}
-	return result;
-}
-#endif
-
 int_array_t parse_rules(string_array_t lines)
 {
 	[[gnu::cleanup(regfree)]]
@@ -273,6 +251,30 @@ int_array_array_t parse_pages(string_array_t lines)
 	return result;
 }
 
+bool pages_valid(graph_t g, int_array_t pages)
+{
+	for (size_t i = 0; i < pages.size - 1; i++) {
+		for (size_t j = i + 1; j < pages.size; j++) {
+			if (!graph_has_neighbor(g, pages.data[i], pages.data[j])) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+int sum_valid(graph_t g, int_array_array_t pages_arr)
+{
+	int sum = 0;
+	for (size_t i = 0; i < pages_arr.size; i++) {
+		int_array_t pages = pages_arr.data[i];
+		if (pages_valid(g, pages)) {
+			sum += pages.data[pages.size / 2];
+		}
+	}
+	return sum;
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2) {
@@ -287,36 +289,21 @@ int main(int argc, char *argv[])
 
 	string_array_t lines = split_lines(data);
 	int_array_t pairs = parse_rules(lines);
+	int_array_array_t pages = parse_pages(lines);
+	array_deinit(lines);
+
 	for (size_t i = 0; i < pairs.size; i += 2) {
 		graph_add_pair(&graph, pairs.data[i], pairs.data[i + 1]);
 	}
 	array_deinit(pairs);
 
-	int_array_array_t pages = parse_pages(lines);
-	for (size_t i = 0; i < pages.size; i++) {
-		for (size_t j = 0; j < pages.data[i].size; j++) {
-			printf("%d ", pages.data[i].data[j]);
-		}
-		printf("\n");
-	}
+	// graph_print(graph);
+
+	printf("Sum of valid: %d\n", sum_valid(graph, pages));
 	for (size_t i = 0; i < pages.size; i++) {
 		array_deinit(pages.data[i]);
 	}
-
 	array_deinit(pages);
-	array_deinit(lines);
-
-	graph_print(graph);
-	printf("%d -> %d: %s\n", 13, 29,
-		   graph_has_neighbor(graph, 13, 29) ? "true" : "false");
-	printf("%d -> %d: %s\n", 61, 29,
-		   graph_has_neighbor(graph, 61, 29) ? "true" : "false");
-	printf("%d -> %d: %s\n", 97, 53,
-		   graph_has_neighbor(graph, 97, 53) ? "true" : "false");
-	printf("%d -> %d: %s\n", 29, 13,
-		   graph_has_neighbor(graph, 29, 13) ? "true" : "false");
-	printf("%d -> %d: %s\n", 47, 75,
-		   graph_has_neighbor(graph, 47, 75) ? "true" : "false");
 
 	for (size_t i = 0; i < graph.size; i++) {
 		array_deinit(graph.data[i].neighbors);
