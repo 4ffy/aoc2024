@@ -15,6 +15,8 @@ def is_valid(round):
                 result += operands[j + 1]
             else:
                 result *= operands[j + 1]
+            if result > expected:
+                break
         if result == expected:
             return True
     return False
@@ -42,6 +44,8 @@ def is_valid_concat(round):
                 result *= operands[i + 1]
             else:
                 result = concat(result, operands[i + 1])
+            if result > expected:
+                break
         if result == expected:
             return True
     return False
