@@ -3,6 +3,8 @@
 (ql:quickload :cl-ppcre :silent t)
 (rename-package 'cl-ppcre 're)
 
+(declaim (optimize (speed 3) (safety 0))) ; Best I can do.
+
 (defconstant +north+ 1)
 (defconstant +south+ 2)
 (defconstant +west+ 4)
