@@ -151,25 +151,24 @@ void parse_data(record_array_t *out, char *src)
 	}
 }
 
-bool _record_is_valid_recurse(record_t *record, long target, long end)
-{
-	long last = record->operands.data[end];
-	if (end == 0) {
-		return last == target;
-	}
-	if (target % last == 0) {
-		return _record_is_valid_recurse(record, target / last, end - 1);
-	}
-	if (target - last > 0) {
-		return _record_is_valid_recurse(record, target - last, end - 1);
-	}
-	return false;
-}
-
 bool record_is_valid(record_t *record)
 {
-	return _record_is_valid_recurse(record, record->expected,
-									record->operands.size - 1);
+	long target = record->expected;
+	long end = record->operands.size - 1;
+	while (true) {
+		long last = record->operands.data[end];
+		if (end == 0) {
+			return last == target;
+		} else if (target % last == 0) {
+			target /= last;
+			end--;
+		} else if (target - last > 0) {
+			target -= last;
+			end--;
+		} else {
+			return false;
+		}
+	}
 }
 
 long sum_valid_records(record_array_t *records)
