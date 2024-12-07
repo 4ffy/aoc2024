@@ -151,24 +151,28 @@ void parse_data(record_array_t *out, char *src)
 	}
 }
 
+bool _record_is_valid_recurse(record_t *r, long target, long end)
+{
+	long last = r->operands.data[end];
+	if (end == 0) {
+		return last == target;
+	}
+
+	bool can_add = false;
+	bool can_mul = false;
+	if (target % last == 0) {
+		can_mul = _record_is_valid_recurse(r, target / last, end - 1);
+	}
+	if (target - last > 0) {
+		can_add = _record_is_valid_recurse(r, target - last, end - 1);
+	}
+	return can_mul || can_add;
+}
+
 bool record_is_valid(record_t *record)
 {
-	long target = record->expected;
-	long end = record->operands.size - 1;
-	while (true) {
-		long last = record->operands.data[end];
-		if (end == 0) {
-			return last == target;
-		} else if (target % last == 0) {
-			target /= last;
-			end--;
-		} else if (target - last > 0) {
-			target -= last;
-			end--;
-		} else {
-			return false;
-		}
-	}
+	return _record_is_valid_recurse(record, record->expected,
+									record->operands.size - 1);
 }
 
 long sum_valid_records(record_array_t *records)
