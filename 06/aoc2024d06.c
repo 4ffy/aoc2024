@@ -297,16 +297,9 @@ int main(int argc, char *argv[])
 	}
 
 	char *data = read_file(argv[1]);
-
 	grid_t grid = {0};
 	parse_grid(&grid, data);
-	grid_print(&grid);
-	printf("\n");
-
 	grid_run(&grid);
-	grid_print(&grid);
-	printf("\n");
-
 	printf("Cells visited: %d\n", grid_count_visited(&grid));
 	printf("Loops possible: %d\n", grid_count_loop_add(&grid));
 

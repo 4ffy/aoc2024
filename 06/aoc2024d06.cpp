@@ -246,8 +246,6 @@ int main(int argc, char *argv[])
 	string data = read_file(argv[1]);
 
 	Grid grid{data};
-	grid.walk();
-	println("{}", grid);
 	println("Cells visited: {}", grid.count_visited());
 	println("Loops possible: {}", grid.count_loop_adds());
 
