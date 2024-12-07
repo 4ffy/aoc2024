@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <math.h>
 #include <regex.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -187,6 +188,63 @@ long sum_valid_records(record_array_t *records)
 	return sum;
 }
 
+static inline long digits(long x) { return (long)log10((double)x) + 1; }
+
+static inline long pow_10(long x) { return (long)pow(10.0, (double)x); }
+
+bool ends_with(long x, long y)
+{
+	long x_digits = digits(x);
+	long y_digits = digits(y);
+	if (x_digits < y_digits) {
+		return false;
+	}
+	long slice = pow_10(y_digits);
+	return x == slice * (x / slice) + y;
+}
+
+bool _record_is_valid_concat_recurse(record_t *r, long target, long end)
+{
+	long last = r->operands.data[end];
+	if (end == 0) {
+		return last == target;
+	}
+
+	bool can_add = false;
+	bool can_mul = false;
+	bool can_concat = false;
+	if (target % last == 0) {
+		can_mul = _record_is_valid_concat_recurse(r, target / last, end - 1);
+	}
+	if (target - last > 0) {
+		can_add = _record_is_valid_concat_recurse(r, target - last, end - 1);
+	}
+	if (ends_with(target, last)) {
+		long slice = pow_10(digits(last));
+		can_concat =
+			_record_is_valid_concat_recurse(r, target / slice, end - 1);
+	}
+	return can_mul || can_add || can_concat;
+}
+
+bool record_is_valid_concat(record_t *record)
+{
+	return _record_is_valid_concat_recurse(record, record->expected,
+										   record->operands.size - 1);
+}
+
+long sum_valid_records_concat(record_array_t *records)
+{
+	long sum = 0;
+	for (long i = 0; i < records->size; i++) {
+		record_t *curr = &records->data[i];
+		if (record_is_valid_concat(curr)) {
+			sum += curr->expected;
+		}
+	}
+	return sum;
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2) {
@@ -201,6 +259,7 @@ int main(int argc, char *argv[])
 	parse_data(&records, src);
 
 	printf("Sum of valid: %ld\n", sum_valid_records(&records));
+	printf("Sum of concat: %ld\n", sum_valid_records_concat(&records));
 
 	free(src);
 	return 0;
