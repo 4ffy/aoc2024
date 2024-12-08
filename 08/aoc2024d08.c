@@ -1,11 +1,13 @@
 #include <errno.h>
 #include <regex.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // A-Z, a-z, 0-9
 #define NUM_SYMBOLS 62
+#define SET_MAX_LOAD 0.75
 
 #define array_init(arr, type)                                                  \
 	do {                                                                       \
@@ -123,6 +125,101 @@ void grid_print(grid_t *grid)
 	}
 }
 
+typedef struct point_set_entry_s {
+	bool has_value;
+	point_t value;
+} point_set_entry_t;
+
+typedef struct point_set_s {
+	point_set_entry_t *data;
+	long size;
+	long cap;
+} point_set_t;
+
+void point_set_deinit(point_set_t *p) { array_deinit((*p)); }
+
+uint32_t hash_point(point_t point)
+{
+	size_t length = sizeof(point);
+	uint8_t *data = (uint8_t *)(&point);
+	uint32_t hash = 2166136261u;
+	for (size_t i = 0; i < length; i++) {
+		hash ^= data[i];
+		hash *= 16777619;
+	}
+	return hash;
+}
+
+point_set_entry_t *_point_set_find(point_set_entry_t *entries, long cap,
+								   point_t point)
+{
+	uint32_t hash = hash_point(point);
+	uint32_t idx = hash & (cap - 1);
+	while (true) {
+		point_set_entry_t *entry = &entries[idx];
+		if (!entry->has_value) {
+			return entry;
+		}
+		if (entry->has_value && points_equal(entry->value, point)) {
+			return entry;
+		}
+		idx = (idx + 1) & (cap - 1);
+	}
+}
+
+void _point_set_expand(point_set_t *set)
+{
+	long new_cap = set->cap * 2;
+	point_set_entry_t *new_data = calloc(new_cap, sizeof(point_set_entry_t));
+	if (new_data == nullptr) {
+		fprintf(stderr, "Out of memory.\n");
+		exit(1);
+	}
+	set->size = 0;
+	for (long i = 0; i < set->cap; i++) {
+		point_set_entry_t entry = set->data[i];
+		if (entry.has_value) {
+			point_set_entry_t *dest =
+				_point_set_find(new_data, new_cap, entry.value);
+			*dest = entry;
+			set->size++;
+		}
+	}
+	free(set->data);
+	set->data = new_data;
+	set->cap = new_cap;
+}
+
+bool point_set_insert(point_set_t *set, point_t point)
+{
+	if ((double)(set->size + 1) > (double)set->cap * SET_MAX_LOAD) {
+		_point_set_expand(set);
+	}
+	point_set_entry_t *dest = _point_set_find(set->data, set->cap, point);
+	bool is_new = !dest->has_value;
+	if (is_new) {
+		set->size++;
+	}
+	dest->has_value = true;
+	dest->value = point;
+	return is_new;
+}
+
+point_set_entry_t point_set_get(point_set_t *set, point_t point)
+{
+	point_set_entry_t result = {0};
+	result.has_value = false;
+	if (set->size == 0) {
+		return result;
+	}
+	point_set_entry_t *entry = _point_set_find(set->data, set->cap, point);
+	if (entry->has_value) {
+		result.has_value = true;
+		result.value = point;
+	}
+	return result;
+}
+
 void fclose_wrap(FILE **f) { fclose(*f); }
 
 char *read_file(char const *filename)
@@ -199,6 +296,48 @@ void parse_grid(grid_t *grid, char *src)
 	}
 }
 
+void find_antinodes(point_set_t *out, grid_t *grid)
+{
+	for (int g = 0; g < NUM_SYMBOLS; g++) {
+		point_array_t group = grid->chars[g];
+		if (group.size == 0) {
+			continue;
+		}
+		for (long i = 0; i < group.size - 1; i++) {
+			for (long j = i + 1; j < group.size; j++) {
+				point_t p1 = group.data[i];
+				point_t p2 = group.data[j];
+				int dy = p2.y - p1.y;
+				int dx = p2.x - p1.x;
+				if (grid_in_bounds(grid, p1.y - dy, p1.x - dx)) {
+					point_t temp = {.y = p1.y - dy, .x = p1.x - dx};
+					point_set_insert(out, temp);
+				}
+				if (grid_in_bounds(grid, p2.y + dy, p2.x + dx)) {
+					point_t temp = {.y = p2.y + dy, .x = p2.x + dx};
+					point_set_insert(out, temp);
+				}
+			}
+		}
+	}
+}
+
+int count_antinodes(grid_t *grid)
+{
+	[[gnu::cleanup(point_set_deinit)]]
+	point_set_t antinodes = {0};
+	array_init(antinodes, point_set_entry_t);
+	find_antinodes(&antinodes, grid);
+	int count = 0;
+	for (long i = 0; i < antinodes.cap; i++) {
+		point_set_entry_t entry = antinodes.data[i];
+		if (entry.has_value) {
+			count++;
+		}
+	}
+	return count;
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2) {
@@ -210,8 +349,9 @@ int main(int argc, char *argv[])
 	[[gnu::cleanup(grid_deinit)]]
 	grid_t grid = {0};
 	parse_grid(&grid, data);
-	grid_print(&grid);
-	printf("\n");
+	// grid_print(&grid);
+
+	printf("Antinode count: %d\n", count_antinodes(&grid));
 
 	free(data);
 	return 0;
