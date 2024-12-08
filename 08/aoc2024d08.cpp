@@ -157,6 +157,39 @@ class Grid
 		}
 		return result;
 	}
+
+	unordered_set<Point> find_antinodes_2()
+	{
+		unordered_set<Point> result{};
+		for (auto &group : m_data) {
+			if (group.empty()) {
+				continue;
+			}
+			for (size_t i = 0; i < group.size() - 1; ++i) {
+				for (size_t j = i + 1; j < group.size(); ++j) {
+					Point p1 = group.at(i);
+					Point p2 = group.at(j);
+					long dy = p2.y - p1.y;
+					long dx = p2.x - p1.x;
+					long k = 0;
+					bool done = false;
+					while (!done) {
+						done = true;
+						if (in_bounds(p1.y - dy * k, p1.x - dx * k)) {
+							done = false;
+							result.insert(Point{p1.y - dy * k, p1.x - dx * k});
+						}
+						if (in_bounds(p2.y + dy * k, p2.x + dx * k)) {
+							done = false;
+							result.insert(Point{p2.y + dy * k, p2.x + dx * k});
+						}
+						++k;
+					}
+				}
+			}
+		}
+		return result;
+	}
 };
 
 template <> struct std::formatter<Grid> : std::formatter<string> {
@@ -185,4 +218,5 @@ int main(int argc, char *argv[])
 	Grid grid = Grid::from_string(src);
 	// println("{}", grid);
 	println("Unique antinodes: {}", grid.find_antinodes().size());
+	println("Unique antinodes v2: {}", grid.find_antinodes_2().size());
 }
