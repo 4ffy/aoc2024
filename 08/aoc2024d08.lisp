@@ -1,3 +1,5 @@
+#!/usr/bin/env -S sbcl --script
+(load "~/.sbclrc")
 (ql:quickload :cl-ppcre :silent t)
 
 (defun file-to-string (path)
@@ -30,18 +32,6 @@
      (+ 36 (- (char-code char) (char-code #\a))))
     (t
      -1)))
-
-(defun grid-index-to-char (index)
-  "Convert INDEX in the grid point-sets array to the character it represents."
-  (cond
-    ((<= 0 index 9)
-     (digit-char index))
-    ((<= 10 index 35)
-     (code-char (- (+ index (char-code #\A)) 10)))
-    ((<= 36 index 61)
-     (code-char (- (+ index (char-code #\a)) 36)))
-    (t
-     (error "Invalid index."))))
 
 (defun parse-grid (str)
   "Read a grid from STR."
@@ -90,12 +80,48 @@
             (setf (gethash anti-2 result) t)))))
     result))
 
+(defun find-antinodes-2 (grid)
+  (let ((result (make-hash-table :test #'equalp))
+        (groups (map 'list #'identity (grid-point-sets grid))))
+    (dolist (group groups)
+      (dolist (pair (combinations group))
+        (let* ((p1 (car pair))
+               (p2 (cdr pair))
+               (dy (- (point-y p2) (point-y p1)))
+               (dx (- (point-x p2) (point-x p1))))
+          (loop
+            for i = 0 then (1+ i)
+            for done = nil do
+              (setf done t)
+              (let ((anti-1
+                      (make-point
+                       :y (- (point-y p1) (* i dy))
+                       :x (- (point-x p1) (* i dx))))
+                    (anti-2
+                      (make-point
+                       :y (+ (point-y p2) (* i dy))
+                       :x (+ (point-x p2) (* i dx)))))
+                (when (grid-in-bounds grid (point-y anti-1) (point-x anti-1))
+                  (setf done nil)
+                  (setf (gethash anti-1 result) t))
+                (when (grid-in-bounds grid (point-y anti-2) (point-x anti-2))
+                  (setf done nil)
+                  (setf (gethash anti-2 result) t)))
+            until done)
+          )))
+    result))
+
 (defun run (args)
   (if (= 2 (length args))
       (if (probe-file (cadr args))
           (let ((grid (parse-grid (file-to-string (cadr args)))))
             (format t
                     "Antinode count: ~D~%"
-                    (hash-table-count (find-antinodes grid))))
+                    (hash-table-count (find-antinodes grid)))
+            (format t
+                    "Antinode count 2: ~D~%"
+                    (hash-table-count (find-antinodes-2 grid))))
           (format t "File not found: '~A'~%" (cadr args)))
       (format t "No input file.~%")))
+
+(run sb-ext:*posix-argv*)
