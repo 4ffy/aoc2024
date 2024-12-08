@@ -338,6 +338,56 @@ int count_antinodes(grid_t *grid)
 	return count;
 }
 
+void find_antinodes_2(point_set_t *out, grid_t *grid)
+{
+	for (int g = 0; g < NUM_SYMBOLS; g++) {
+		point_array_t group = grid->chars[g];
+		if (group.size == 0) {
+			continue;
+		}
+		for (long i = 0; i < group.size - 1; i++) {
+			for (long j = i + 1; j < group.size; j++) {
+				point_t p1 = group.data[i];
+				point_t p2 = group.data[j];
+				int dy = p2.y - p1.y;
+				int dx = p2.x - p1.x;
+				int k = 0;
+				bool done = false;
+				while (!done) {
+					done = true;
+					if (grid_in_bounds(grid, p1.y - dy * k, p1.x - dx * k)) {
+						done = false;
+						point_t temp = {.y = p1.y - dy * k, .x = p1.x - dx * k};
+						point_set_insert(out, temp);
+					}
+					if (grid_in_bounds(grid, p2.y + dy * k, p2.x + dx * k)) {
+						done = false;
+						point_t temp = {.y = p2.y + dy * k, .x = p2.x + dx * k};
+						point_set_insert(out, temp);
+					}
+					k++;
+				}
+			}
+		}
+	}
+}
+
+int count_antinodes_2(grid_t *grid)
+{
+	[[gnu::cleanup(point_set_deinit)]]
+	point_set_t antinodes = {0};
+	array_init(antinodes, point_set_entry_t);
+	find_antinodes_2(&antinodes, grid);
+	int count = 0;
+	for (long i = 0; i < antinodes.cap; i++) {
+		point_set_entry_t entry = antinodes.data[i];
+		if (entry.has_value) {
+			count++;
+		}
+	}
+	return count;
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2) {
@@ -352,6 +402,7 @@ int main(int argc, char *argv[])
 	// grid_print(&grid);
 
 	printf("Antinode count: %d\n", count_antinodes(&grid));
+	printf("Antinode count 2: %d\n", count_antinodes_2(&grid));
 
 	free(data);
 	return 0;
