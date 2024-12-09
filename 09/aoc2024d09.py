@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import os
+from copy import deepcopy
 
 
 class Block:
@@ -8,6 +9,7 @@ class Block:
         self.data = [id for x in range(size)] + [None for x in range(free)]
         self.size = size + free
         self.fill = size
+        self.orig_fill = size
 
     def __str__(self):
         return str(self.data)
@@ -27,11 +29,31 @@ class Block:
             return ret
         raise RuntimeError("Popped empty")
 
+    def pop_orig(self):
+        if self.orig_fill > 0:
+            self.orig_fill -= 1
+            ret = self.data[self.orig_fill]
+            self.data[self.orig_fill] = None
+            return ret
+        raise RuntimeError("Popped empty")
+
     def empty(self):
         return self.fill == 0
 
+    def empty_orig(self):
+        return self.orig_fill == 0
+
     def full(self):
         return self.fill == len(self.data)
+
+    def fill_space(self):
+        return self.fill
+
+    def fill_orig(self):
+        return self.orig_fill
+
+    def free_space(self):
+        return self.size - self.fill
 
 
 def parse_blocks(src):
@@ -59,15 +81,31 @@ def compress(blocks):
         first.push(last.pop())
 
 
+def defrag(blocks):
+    for last in blocks[::-1]:
+        if last.empty():
+            continue
+        start = 0
+        first = blocks[start]
+        while first != last:
+            if first.free_space() >= last.fill_orig():
+                while not last.empty_orig():
+                    first.push(last.pop_orig())
+                break
+            else:
+                start += 1
+                first = blocks[start]
+
+
 def checksum(blocks):
     sum = 0
-    i = 0
+    i = -1
     for block in blocks:
         for x in block.data:
             if x is None:
-                break
-            sum += i * x
+                x = 0
             i += 1
+            sum += i * x
     return sum
 
 
@@ -82,5 +120,8 @@ if __name__ == "__main__":
     with open(sys.argv[1], "rt") as f:
         data = f.read().rstrip()
     blocks = parse_blocks(data)
+    blocks_2 = deepcopy(blocks)
     compress(blocks)
-    print(f"Checksum: {checksum(blocks)}")
+    defrag(blocks_2)
+    print(f"Compress checksum: {checksum(blocks)}")
+    print(f"Defrag checksum: {checksum(blocks_2)}")
