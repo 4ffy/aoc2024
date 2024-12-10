@@ -1,6 +1,7 @@
 #include <fstream>
 #include <print>
 #include <regex>
+#include <sstream>
 #include <string>
 #include <vector>
 
