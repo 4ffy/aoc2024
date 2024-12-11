@@ -68,7 +68,7 @@ template<> struct std::hash<pair<long, int>> {
 	result_type operator()(argument_type const &s) const noexcept {
 		result_type const h1(std::hash<long>{}(s.first));
 		result_type const h2(std::hash<int>{}(s.second));
-		return h1 & (h2 << 1);
+		return h1 ^ (h2 << 1);
 	}
 };
 
