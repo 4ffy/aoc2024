@@ -6,29 +6,29 @@
 
 #define array_init(arr, type)                                                  \
 	do {                                                                       \
-		arr.data = calloc(8, sizeof(type));                                    \
-		if (arr.data == NULL) {                                                \
+		(arr).data = calloc(8, sizeof(type));                                  \
+		if ((arr).data == NULL) {                                              \
 			fprintf(stderr, "Out of memory.\n");                               \
 			exit(1);                                                           \
 		}                                                                      \
-		arr.size = 0;                                                          \
-		arr.cap = 8;                                                           \
+		(arr).size = 0;                                                        \
+		(arr).cap = 8;                                                         \
 	} while (0)
 
 #define array_deinit(arr)                                                      \
 	do {                                                                       \
-		free(arr.data);                                                        \
-		arr.size = 0;                                                          \
-		arr.cap = 0;                                                           \
+		free((arr).data);                                                      \
+		(arr).size = 0;                                                        \
+		(arr).cap = 0;                                                         \
 	} while (0)
 
 #define array_push(arr, type, item)                                            \
 	do {                                                                       \
-		arr.data[arr.size++] = item;                                           \
-		if (arr.size == arr.cap) {                                             \
-			arr.cap *= 2;                                                      \
-			arr.data = realloc(arr.data, arr.cap * sizeof(type));              \
-			if (arr.data == NULL) {                                            \
+		(arr).data[(arr).size++] = (item);                                     \
+		if ((arr).size == (arr).cap) {                                         \
+			(arr).cap *= 2;                                                    \
+			(arr).data = realloc((arr).data, (arr).cap * sizeof(type));        \
+			if ((arr).data == NULL) {                                          \
 				fprintf(stderr, "Out of memory.\n");                           \
 				exit(1);                                                       \
 			}                                                                  \
@@ -41,7 +41,7 @@ typedef struct int_array_s {
 	long cap;
 } int_array_t;
 
-void int_array_deinit(int_array_t *i) { array_deinit((*i)); }
+void int_array_deinit(int_array_t *i) { array_deinit(*i); }
 
 typedef struct string_array_s {
 	char **data;
@@ -49,7 +49,7 @@ typedef struct string_array_s {
 	long cap;
 } string_array_t;
 
-void string_array_deinit(string_array_t *s) { array_deinit((*s)); }
+void string_array_deinit(string_array_t *s) { array_deinit(*s); }
 
 void fclose_wrap(FILE **f) { fclose(*f); }
 
