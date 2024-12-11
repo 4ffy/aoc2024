@@ -10,23 +10,26 @@ def digits(x):
 
 def split(x):
     n = 10 ** (digits(x) / 2)
-    return [int(x / n), int(x % n)]
+    return int(x / n), int(x % n)
 
 
-cache = {0: [1]}
+cache = {}
 
 
-def blink(lst):
-    result = []
-    for x in lst:
-        if x in cache:
-            result.extend(cache[x])
-        elif digits(x) & 1 == 0:
-            cache[x] = split(x)
-            result.extend(cache[x])
-        else:
-            cache[x] = [x * 2024]
-            result.extend(cache[x])
+def blink(x, gens_left):
+    if gens_left == 0:
+        return 1
+    if (x, gens_left) in cache:
+        return cache[(x, gens_left)]
+    result = None
+    if x == 0:
+        result = blink(1, gens_left - 1)
+    elif digits(x) & 1 == 0:
+        l, r = split(x)
+        result = blink(l, gens_left - 1) + blink(r, gens_left - 1)
+    else:
+        result = blink(2024 * x, gens_left - 1)
+    cache[(x, gens_left)] = result
     return result
 
 
@@ -42,6 +45,13 @@ if __name__ == "__main__":
     with open(sys.argv[1], "rt") as f:
         data = f.read().rstrip()
     lst = [int(x) for x in data.split(" ")]
-    for i in range(25):
-        lst = blink(lst)
-    print(f"Stones: {len(lst)}")
+
+    sum = 0
+    for x in lst:
+        sum += blink(x, 25)
+    print(f"25 blinks: {sum}")
+
+    sum = 0
+    for x in lst:
+        sum += blink(x, 75)
+    print(f"75 blinks: {sum}")
