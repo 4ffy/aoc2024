@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstdint>
 #include <fstream>
 #include <print>
 #include <regex>
@@ -66,9 +67,14 @@ template<> struct std::hash<pair<long, int>> {
 	using argument_type = pair<long, int>;
 	using result_type = size_t;
 	result_type operator()(argument_type const &s) const noexcept {
-		result_type const h1(std::hash<long>{}(s.first));
-		result_type const h2(std::hash<int>{}(s.second));
-		return h1 ^ (h2 << 1);
+		uint8_t const *data = reinterpret_cast<uint8_t const *>(&s);
+		size_t length = sizeof(argument_type);
+		uint32_t hash = 2166136261u;
+		for (size_t i = 0; i < length; i++) {
+			hash ^= data[i];
+			hash *= 16777619;
+		}
+		return static_cast<size_t>(hash);
 	}
 };
 
