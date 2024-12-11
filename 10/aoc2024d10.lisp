@@ -1,5 +1,3 @@
-#!/usr/bin/env -S sbcl --script
-(load "~/.sbclrc")
 (ql:quickload :cl-ppcre :silent t)
 
 (defun file-to-string (path)
@@ -87,4 +85,5 @@
           (format t "File not found: '~A'~%" (cadr args)))
       (format t "No input file.~%")))
 
-(run sb-ext:*posix-argv*)
+(defun main ()
+  (run sb-ext:*posix-argv*))

@@ -1,5 +1,3 @@
-#!/usr/bin/env -S sbcl --script
-
 (defun zip (list-1 list-2)
   "Zip LIST-1 and LIST-2 together as a cons pair of each corresponding element."
   (mapcar (lambda (x y) `(,x . ,y)) list-1 list-2))
@@ -57,4 +55,5 @@ occurences of said element in LIST-2)."
         (format t "Usage: ~A inputfile~%" (car args))
         (sb-ext:exit :code 1))))
 
-(run sb-ext:*posix-argv*)
+(defun main ()
+  (run sb-ext:*posix-argv*))

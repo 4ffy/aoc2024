@@ -1,5 +1,3 @@
-#!/usr/bin/env -S sbcl --script
-(load "~/.sbclrc")
 (ql:quickload :cl-ppcre :silent t)
 (ql:quickload :cl-slice :silent t)
 (rename-package 'cl-ppcre 're)
@@ -158,4 +156,5 @@
           (format t "File not found: '~A'~%" (cadr args)))
       (format t "No input file.~%")))
 
-(run sb-ext:*posix-argv*)
+(defun main ()
+  (run sb-ext:*posix-argv*))

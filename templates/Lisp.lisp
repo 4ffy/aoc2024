@@ -14,3 +14,6 @@
           (format t "hi~%")
           (format t "File not found: '~A'~%" (cadr args)))
       (format t "No input file.~%")))
+
+(defun main ()
+  (run sb-ext:*posix-argv*))

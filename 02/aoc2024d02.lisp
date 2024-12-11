@@ -1,5 +1,3 @@
-#!/usr/bin/env -S sbcl --script
-
 (defun pairs (lst)
   "Construct a list of cons pairs of each adjacent pair of items in LST."
   (loop for pair = lst then (cdr pair)
@@ -86,4 +84,5 @@ without removing any elements."
       (progn
         (format t "No input file.~%"))))
 
-(run sb-ext:*posix-argv*)
+(defun main ()
+  (run sb-ext:*posix-argv*))
