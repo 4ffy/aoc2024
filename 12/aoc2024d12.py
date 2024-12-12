@@ -45,6 +45,14 @@ class Grid:
                     curr.connections |= EAST
                     self.data[y][x + 1].connections |= WEST
 
+    def get(self, y, x):
+        return self.data[y][x]
+
+    def clear_visited(self):
+        for row in self.data:
+            for item in row:
+                item.visited = False
+
     def is_visited(self, y, x):
         return self.data[y][x].visited
 
@@ -54,6 +62,8 @@ class Grid:
     def walk(self, start_y, start_x):
         area = 0
         perimeter = 0
+        sides = 0
+
         queue = Queue()
         curr = self.data[start_y][start_x]
         curr.visited = True
@@ -67,45 +77,97 @@ class Grid:
             if curr.connections & NORTH:
                 if not self.is_visited(y - 1, x):
                     self.visit(y - 1, x)
-                    queue.put(self.data[y - 1][x])
+                    queue.put(self.get(y - 1, x))
             else:
                 perimeter += 1
 
             if curr.connections & SOUTH:
                 if not self.is_visited(y + 1, x):
                     self.visit(y + 1, x)
-                    queue.put(self.data[y + 1][x])
+                    queue.put(self.get(y + 1, x))
             else:
                 perimeter += 1
 
             if curr.connections & WEST:
                 if not self.is_visited(y, x - 1):
                     self.visit(y, x - 1)
-                    queue.put(self.data[y][x - 1])
+                    queue.put(self.get(y, x - 1))
             else:
                 perimeter += 1
 
             if curr.connections & EAST:
                 if not self.is_visited(y, x + 1):
                     self.visit(y, x + 1)
-                    queue.put(self.data[y][x + 1])
+                    queue.put(self.get(y, x + 1))
             else:
                 perimeter += 1
 
-        return area, perimeter
+            # Concave north/east
+            if not curr.connections & NORTH and not curr.connections & EAST:
+                sides += 1
+
+            # Concave south/west
+            if not curr.connections & SOUTH and not curr.connections & WEST:
+                sides += 1
+
+            # Concave east/south
+            if not curr.connections & EAST and not curr.connections & SOUTH:
+                sides += 1
+
+            # Concave west/north
+            if not curr.connections & WEST and not curr.connections & NORTH:
+                sides += 1
+
+            # Convex north/west
+            if (
+                curr.connections & NORTH
+                and curr.connections & WEST
+                and not self.get(y - 1, x).connections & WEST
+                and not self.get(y, x - 1).connections & NORTH
+            ):
+                sides += 1
+
+            # Convex south/east
+            if (
+                curr.connections & SOUTH
+                and curr.connections & EAST
+                and not self.get(y + 1, x).connections & EAST
+                and not self.get(y, x + 1).connections & SOUTH
+            ):
+                sides += 1
+
+            # Convex east/north
+            if (
+                curr.connections & EAST
+                and curr.connections & NORTH
+                and not self.get(y, x + 1).connections & NORTH
+                and not self.get(y - 1, x).connections & EAST
+            ):
+                sides += 1
+
+            # Convex west/south
+            if (
+                curr.connections & WEST
+                and curr.connections & SOUTH
+                and not self.get(y, x - 1).connections & SOUTH
+                and not self.get(y + 1, x).connections & WEST
+            ):
+                sides += 1
+
+        return area, perimeter, sides
 
     def price(self):
         sum = 0
-        for row in self.data:
-            for item in row:
-                item.visited = False
+        bulk = 0
+        self.clear_visited()
         for y in range(self.height):
             for x in range(self.width):
                 if self.is_visited(y, x):
                     continue
-                area, perimeter = self.walk(y, x)
+                area, perimeter, sides = self.walk(y, x)
                 sum += area * perimeter
-        return sum
+                bulk += area * sides
+        return sum, bulk
 
 
 if __name__ == "__main__":
@@ -123,4 +185,6 @@ if __name__ == "__main__":
         ]
     grid = Grid(data, len(data), len(data[0]))
     grid.find_regions()
-    print(f"Total cost: {grid.price()}")
+    price, bulk = grid.price()
+    print(f"Normal cost: {price}")
+    print(f"Bulk cost: {bulk}")
