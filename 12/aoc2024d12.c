@@ -248,6 +248,11 @@ void find_regions(grid_t *grid)
 	}
 }
 
+static inline bool has_neighbor(cell_t *cell, connection_t dir)
+{
+	return cell->neighbors & dir;
+}
+
 walk_result_t walk_region(grid_t *grid, long start_y, long start_x)
 {
 	int area = 0;
@@ -268,32 +273,80 @@ walk_result_t walk_region(grid_t *grid, long start_y, long start_x)
 			cell->visited = true;
 			area++;
 
-			if (cell->neighbors & CONN_NORTH) {
+			if (has_neighbor(cell, CONN_NORTH)) {
 				long_pair_t temp = {.first = y - 1, .second = x};
 				array_push(stack, long_pair_t, temp);
 			} else {
 				perimeter++;
 			}
 
-			if (cell->neighbors & CONN_SOUTH) {
+			if (has_neighbor(cell, CONN_SOUTH)) {
 				long_pair_t temp = {.first = y + 1, .second = x};
 				array_push(stack, long_pair_t, temp);
 			} else {
 				perimeter++;
 			}
 
-			if (cell->neighbors & CONN_WEST) {
+			if (has_neighbor(cell, CONN_WEST)) {
 				long_pair_t temp = {.first = y, .second = x - 1};
 				array_push(stack, long_pair_t, temp);
 			} else {
 				perimeter++;
 			}
 
-			if (cell->neighbors & CONN_EAST) {
+			if (has_neighbor(cell, CONN_EAST)) {
 				long_pair_t temp = {.first = y, .second = x + 1};
 				array_push(stack, long_pair_t, temp);
 			} else {
 				perimeter++;
+			}
+
+			if (!has_neighbor(cell, CONN_NORTH) &&
+				!has_neighbor(cell, CONN_EAST)) {
+				sides++;
+			}
+
+			if (!has_neighbor(cell, CONN_SOUTH) &&
+				!has_neighbor(cell, CONN_WEST)) {
+				sides++;
+			}
+
+			if (!has_neighbor(cell, CONN_EAST) &&
+				!has_neighbor(cell, CONN_SOUTH)) {
+				sides++;
+			}
+
+			if (!has_neighbor(cell, CONN_WEST) &&
+				!has_neighbor(cell, CONN_NORTH)) {
+				sides++;
+			}
+
+			if (has_neighbor(cell, CONN_NORTH) &&
+				has_neighbor(cell, CONN_WEST) &&
+				!has_neighbor(grid_get(grid, y - 1, x), CONN_WEST) &&
+				!has_neighbor(grid_get(grid, y, x - 1), CONN_NORTH)) {
+				sides++;
+			}
+
+			if (has_neighbor(cell, CONN_SOUTH) &&
+				has_neighbor(cell, CONN_EAST) &&
+				!has_neighbor(grid_get(grid, y + 1, x), CONN_EAST) &&
+				!has_neighbor(grid_get(grid, y, x + 1), CONN_SOUTH)) {
+				sides++;
+			}
+
+			if (has_neighbor(cell, CONN_EAST) &&
+				has_neighbor(cell, CONN_NORTH) &&
+				!has_neighbor(grid_get(grid, y, x + 1), CONN_NORTH) &&
+				!has_neighbor(grid_get(grid, y - 1, x), CONN_EAST)) {
+				sides++;
+			}
+
+			if (has_neighbor(cell, CONN_WEST) &&
+				has_neighbor(cell, CONN_SOUTH) &&
+				!has_neighbor(grid_get(grid, y, x - 1), CONN_SOUTH) &&
+				!has_neighbor(grid_get(grid, y + 1, x), CONN_WEST)) {
+				sides++;
 			}
 		}
 	}
@@ -303,19 +356,22 @@ walk_result_t walk_region(grid_t *grid, long start_y, long start_x)
 	return result;
 }
 
-long sum_price(grid_t *grid)
+long_pair_t sum_price(grid_t *grid)
 {
-	long sum = 0;
+	long normal = 0;
+	long bulk = 0;
 	grid_clear_visited(grid);
 	for (long y = 0; y < grid->height; y++) {
 		for (long x = 0; x < grid->width; x++) {
 			if (!grid_is_visited(grid, y, x)) {
 				walk_result_t walk = walk_region(grid, y, x);
-				sum += walk.area * walk.perimeter;
+				normal += walk.area * walk.perimeter;
+				bulk += walk.area * walk.sides;
 			}
 		}
 	}
-	return sum;
+	long_pair_t result = {.first = normal, .second = bulk};
+	return result;
 }
 
 int main(int argc, char *argv[])
@@ -330,8 +386,9 @@ int main(int argc, char *argv[])
 	array_init(grid, cell_t);
 	parse_grid(&grid, data);
 	find_regions(&grid);
-	long result = sum_price(&grid);
-	printf("Normal cost: %ld\n", result);
+	long_pair_t result = sum_price(&grid);
+	printf("Normal cost: %ld\n", result.first);
+	printf("Bulk cost: %ld\n", result.second);
 	free(data);
 	return 0;
 }
