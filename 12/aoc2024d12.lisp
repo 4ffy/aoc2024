@@ -5,6 +5,28 @@
 (defconstant +west+ (the unsigned-byte 4))
 (defconstant +east+ (the unsigned-byte 8))
 
+(declaim
+ (optimize (speed 3) (safety 0))
+ (ftype (function (unsigned-byte unsigned-byte) unsigned-byte) band)
+ (ftype (function (unsigned-byte unsigned-byte) unsigned-byte) bor)
+ (ftype (function (cell unsigned-byte) boolean) has-neighbor)
+ (ftype (function (grid fixnum fixnum) cell) grid-get)
+ (ftype (function (grid)) clear-visited)
+ (ftype (function (walk-result walk-result)) walk-result-incf)
+ (ftype (function (string) string) file-to-string)
+ (ftype (function (string) grid) parse-grid)
+ (ftype (function (grid)) find-regions)
+ (ftype (function (grid fixnum fixnum) walk-result) walk)
+ (ftype (function (grid) cons) price)
+ (ftype (function (list) run))
+ (ftype (function () main))
+ (inline band)
+ (inline bor)
+ (inline has-neighbor)
+ (inline grid-get)
+ (inline clear-visited)
+ (inline walk-result-incf))
+
 (defun band (x y)
   "Shorthand for the bitwise and of X and Y."
   (boole boole-and x y))
