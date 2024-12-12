@@ -182,6 +182,28 @@ static inline void grid_clear_visited(grid_t *grid)
 
 // Main program ======================================================
 
+void print_grid(grid_t *grid)
+{
+	for (long y = 0; y < grid->height - 1; y++) {
+		for (long x = 0; x < grid->width - 1; x++) {
+			cell_t *cell = grid_get(grid, y, x);
+			printf("%c%s", cell->id, cell->neighbors & CONN_EAST ? "--" : "  ");
+		}
+		printf("%c\n", grid_get(grid, y, grid->width - 1)->id);
+
+		for (long x = 0; x < grid->width; x++) {
+			cell_t *cell = grid_get(grid, y, x);
+			printf("%c  ", cell->neighbors & CONN_SOUTH ? '|' : ' ');
+		}
+		printf("\n");
+	}
+	for (long x = 0; x < grid->width - 1; x++) {
+		cell_t *cell = grid_get(grid, grid->height - 1, x);
+		printf("%c%s", cell->id, cell->neighbors & CONN_EAST ? "--" : "  ");
+	}
+	printf("%c\n", grid_get(grid, grid->height - 1, grid->width - 1)->id);
+}
+
 void parse_grid(grid_t *out, char *src)
 {
 	[[gnu::cleanup(string_array_deinit)]]
@@ -215,12 +237,12 @@ void find_regions(grid_t *grid)
 			}
 			if (x > 0 && grid_get(grid, y, x - 1)->id == cell->id) {
 				cell->neighbors |= CONN_WEST;
-				grid_get(grid, y, x - 1)->id |= CONN_EAST;
+				grid_get(grid, y, x - 1)->neighbors |= CONN_EAST;
 			}
 			if (x < grid->width - 1 &&
 				grid_get(grid, y, x + 1)->id == cell->id) {
 				cell->neighbors |= CONN_EAST;
-				grid_get(grid, y, x + 1)->id |= CONN_WEST;
+				grid_get(grid, y, x + 1)->neighbors |= CONN_WEST;
 			}
 		}
 	}
