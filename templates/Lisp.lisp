@@ -6,7 +6,7 @@
       (stream path)
     (let ((data (make-string (file-length stream))))
       (read-sequence data stream)
-      (string-right-trim '(#\u0a) data))))
+      (string-right-trim '(#\Newline) data))))
 
 (defun run (args)
   (if (= 2 (length args))

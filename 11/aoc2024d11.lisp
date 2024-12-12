@@ -9,7 +9,7 @@
       (stream path)
     (let ((data (make-string (file-length stream))))
       (read-sequence data stream)
-      (string-right-trim '(#\u0a) data))))
+      (string-right-trim '(#\Newline) data))))
 
 (defun parse-data (str)
   "Construct a vector of each integer in STR."

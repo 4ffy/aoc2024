@@ -42,7 +42,7 @@ occurences of said element in LIST-2)."
   (if (equalp 2 (length args))
       (if (probe-file (cadr args))
           (let* ((data (file-to-string (cadr args)))
-                 (lines (remove "" (split-string #\u0a data) :test #'equalp))
+                 (lines (remove "" (split-string #\Newline data) :test #'equalp))
                  (pairs (mapcar #'parse-line lines))
                  (left (sort (mapcar #'car pairs) #'<))
                  (right (sort (mapcar #'cdr pairs) #'<)))

@@ -65,7 +65,7 @@ without removing any elements."
 
 (defun split-lines (str)
   "Split STR into a list for each line. Remove empty lines."
-  (remove "" (split-string #\u0a str) :test #'equalp))
+  (remove "" (split-string #\Newline str) :test #'equalp))
 
 (defun parse-line (str)
   "Parse STR as a space-delimited list of numbers."

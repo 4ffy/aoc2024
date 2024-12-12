@@ -80,7 +80,7 @@
       (stream path)
     (let ((data (make-string (file-length stream))))
       (read-sequence data stream)
-      (string-right-trim '(#\u0a) data))))
+      (string-right-trim '(#\Newline) data))))
 
 (defun parse-grid (str)
   "Read a grid from STR."

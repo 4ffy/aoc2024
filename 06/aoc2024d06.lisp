@@ -14,7 +14,7 @@
       (stream path)
     (let ((data (make-string (file-length stream))))
       (read-sequence data stream)
-      (string-right-trim '(#\u0a) data))))
+      (string-right-trim '(#\Newline) data))))
 
 (defun split-lines (str)
   "Split STR into a list of lines."

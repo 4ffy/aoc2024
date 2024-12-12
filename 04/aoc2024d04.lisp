@@ -119,7 +119,7 @@
       (stream path)
     (let ((data (make-string (file-length stream))))
       (read-sequence data stream)
-      (string-right-trim '(#\u0a) data))))
+      (string-right-trim '(#\Newline) data))))
 
 (defun split-string (sep str)
   (declare (type character sep)
@@ -133,14 +133,14 @@
 (defun get-array-dimensions (src)
   (declare (type string src))
   "Find the dimensions required for a char array to store the char grid SRC."
-  (let ((lines (split-string #\u0a src)))
+  (let ((lines (split-string #\Newline src)))
     (list (length lines) (length (car lines)))))
 
 (defun string-to-char-array (src)
   (declare (type string src))
   "Store the char grid SRC into an appropriately-sized char array."
   (let ((arr (make-array (get-array-dimensions src) :element-type 'character))
-        (lines (split-string #\u0a src)))
+        (lines (split-string #\Newline src)))
     (loop for y from 0 below (length lines) do
       (loop for x from 0 below (length (car lines)) do
         (setf (aref arr y x) (char (nth y lines) x))))

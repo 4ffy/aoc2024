@@ -8,7 +8,7 @@
       (stream path)
     (let ((data (make-string (file-length stream))))
       (read-sequence data stream)
-      (string-right-trim '(#\u0a) data))))
+      (string-right-trim '(#\Newline) data))))
 
 (defun parse-rule (rule-str)
   "Given RULE-STR like '12|34', extract the two integers into a cons pair."
