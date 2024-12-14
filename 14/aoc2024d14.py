@@ -69,10 +69,9 @@ if __name__ == "__main__":
         data = f.read().rstrip()
     robots = [parse_robot(x) for x in data.split("\n")]
     for i in range(15000):
+        if i == 100:
+            print(f"Product of quadrants: {prod_quadrants(robots, 101, 103)}")
         if overlap(robots) == 0:
-            print(i)
-            print_grid(robots, 101, 103)
+            print(f"Christmas detected: {i}")
         for robot in robots:
             robot.move(101, 103, 1)
-
-    print(f"Product of quadrants: {prod_quadrants(robots, 101, 103)}")
