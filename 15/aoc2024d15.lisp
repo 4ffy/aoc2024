@@ -75,14 +75,22 @@ extra handling across the vertical axis."
       ((char= #\# tile) nil)
       ((char= #\^ dir)
        (cond
-         ((char= #\[ tile) nil)
-         ((char= #\] tile) nil)
+         ((char= #\[ tile)
+          (and (can-move-p grid (1- pos) #\^)
+               (can-move-p grid (+ pos #C(-1 1)) #\^)))
+         ((char= #\] tile)
+          (and (can-move-p grid (1- pos) #\^)
+               (can-move-p grid (+ pos #C(-1 -1)) #\^)))
          (t
           (can-move-p grid (1- pos) #\^))))
       ((char= #\v dir)
        (cond
-         ((char= #\[ tile) nil)
-         ((char= #\] tile) nil)
+         ((char= #\[ tile)
+          (and (can-move-p grid (1+ pos) #\v)
+               (can-move-p grid (+ pos #C(1 1)) #\v)))
+         ((char= #\] tile)
+          (and (can-move-p grid (1+ pos) #\v)
+               (can-move-p grid (+ pos #C(1 -1)) #\v)))
          (t
           (can-move-p grid (1+ pos) #\v))))
       ((char= #\< dir)
@@ -96,14 +104,27 @@ extra handling across the vertical axis."
   "Move the GRID item at POS in the direction DIR if possible. If this movement
 affects other objects, move them as well. Return T if a movement was actually
 performed, otherwise return NIL."
+  ;; I hate it here.
   (let ((tile (gethash pos (grid-data grid))))
     (cond
       ((not (can-move-p grid pos dir)) nil)
       ((char= #\. tile) nil)
       ((char= #\^ dir)
        (cond
-         ((char= #\[ tile) nil)
-         ((char= #\] tile) nil)
+         ((char= #\[ tile)
+          (progn
+            (move grid (+ pos #C(-1 0)) #\^)
+            (move grid (+ pos #C(-1 1)) #\^)
+            (move-unconditional grid pos #\^)
+            (move-unconditional grid (+ pos #C(0 1)) #\^)
+            t))
+         ((char= #\] tile)
+          (progn
+            (move grid (+ pos #C(-1 0)) #\^)
+            (move grid (+ pos #C(-1 -1)) #\^)
+            (move-unconditional grid pos #\^)
+            (move-unconditional grid (+ pos #C(0 -1)) #\^)
+            t))
          (t
           (progn
             (move grid (1- pos) #\^)
@@ -111,8 +132,20 @@ performed, otherwise return NIL."
             t))))
       ((char= #\v dir)
        (cond
-         ((char= #\[ tile) nil)
-         ((char= #\] tile) nil)
+         ((char= #\[ tile)
+          (progn
+            (move grid (+ pos #C(1 0)) #\v)
+            (move grid (+ pos #C(1 1)) #\v)
+            (move-unconditional grid pos #\v)
+            (move-unconditional grid (+ pos #C(0 1)) #\v)
+            t))
+         ((char= #\] tile)
+          (progn
+            (move grid (+ pos #C(1 0)) #\v)
+            (move grid (+ pos #C(1 -1)) #\v)
+            (move-unconditional grid pos #\v)
+            (move-unconditional grid (+ pos #C(0 -1)) #\v)
+            t))
          (t
           (progn
             (move grid (1+ pos) #\v)
@@ -156,16 +189,46 @@ performed, otherwise return NIL."
         when (or (char= #\O chr) (char= #\[ chr))
           sum (+ (imagpart pos) (* 100 (realpart pos)))))
 
+(defun widen-grid (grid)
+  "Construct a wide version of GRID."
+  (let* ((height (grid-height grid))
+         (width (* 2 (grid-width grid)))
+         (robot-pos
+           (+ (grid-robot grid) (complex 0 (imagpart (grid-robot grid)))))
+         (data (make-hash-table :size (* width height))))
+    (loop
+      for pos being each hash-key
+        using (hash-value chr) of (grid-data grid) do
+          (let ((new-pos (+ pos (complex 0 (imagpart pos)))))
+            (cond
+              ((char= #\O chr)
+               (progn
+                 (setf (gethash new-pos data) #\[)
+                 (setf (gethash (+ new-pos #C(0 1)) data) #\])))
+              ((char= #\@ chr)
+               (progn
+                 (setf (gethash new-pos data) #\@)
+                 (setf (gethash (+ new-pos #C(0 1)) data) #\.)))
+              (t
+               (progn
+                 (setf (gethash new-pos data) chr)
+                 (setf (gethash (+ new-pos #C(0 1)) data) chr))))))
+    (make-grid :data data :height height :width width :robot robot-pos)))
+
 (defun run (args)
   (if (= 2 (length args))
       (if (probe-file (cadr args))
           (let* ((data (file-to-string (cadr args)))
                  (split (ppcre:split "\\n\\n" data))
                  (grid (parse-grid (car split)))
+                 (wide (widen-grid grid))
                  (moves (cadr split)))
             (move-robot grid moves)
-            ; (print-grid grid)
-            (format t "Narrow GPS sum: ~D~%" (score-grid grid)))
+            (move-robot wide moves)
+            ;; (print-grid grid)
+            ;; (print-grid wide)
+            (format t "Narrow GPS sum: ~D~%" (score-grid grid))
+            (format t "Wide GPS sum: ~D~%" (score-grid wide)))
           (format *error-output* "File not found: '~A'~%" (cadr args)))
       (format *error-output* "No input file.~%")))
 
