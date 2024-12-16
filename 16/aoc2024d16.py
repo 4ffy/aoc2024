@@ -2,9 +2,6 @@
 import sys
 import os
 from collections import UserDict
-from enum import Enum
-from queue import PriorityQueue
-
 
 North = 1
 South = 2
@@ -17,18 +14,10 @@ class Cell:
         self.neighbors = 0
         self.visited = False
         self.dist = float("inf")
+        self.parent = None
 
     def __str__(self):
         return f"{self.neighbors} {self.visited} {self.dist}"
-
-
-class QueueItem:
-    def __init__(self, pos, cell):
-        self.pos = pos
-        self.cell = cell
-
-    def __lt__(self, other):
-        return self.cell.dist < other.cell.dist
 
 
 class Grid(UserDict):
@@ -95,55 +84,53 @@ class Grid(UserDict):
 
         while self.data[self.end].dist == float("Inf"):
             queue = sorted(queue, key=lambda x: self.data[x].dist, reverse=True)
-
             curr = queue.pop()
             y, x = curr
             cell = self.data[curr]
             cell.visited = True
-
-            print(y, x)
-            print(self)
-
             dist = 0
+
             if cell.neighbors & North and not self.data[(y - 1, x)].visited:
-                if cell.neighbors & South and self.data[(y + 1, x)].visited:
+                if cell.parent == South:
                     dist = cell.dist + 2
                 else:
                     dist = cell.dist + 1002
                 if dist < self.data[(y - 1, x)].dist:
                     self.data[(y - 1, x)].dist = dist
+                    self.data[(y - 1, x)].parent = South
 
             if cell.neighbors & South and not self.data[(y + 1, x)].visited:
-                if cell.neighbors & North and self.data[(y - 1, x)].visited:
+                if cell.parent == North:
                     dist = cell.dist + 2
                 else:
                     dist = cell.dist + 1002
                 if dist < self.data[(y + 1, x)].dist:
                     self.data[(y + 1, x)].dist = dist
+                    self.data[(y + 1, x)].parent = North
 
             if cell.neighbors & West and not self.data[(y, x - 1)].visited:
-                if cell.neighbors & East and self.data[(y, x + 1)].visited:
+                if cell.parent == East:
                     dist = cell.dist + 2
                 else:
                     dist = cell.dist + 1002
                 if dist < self.data[(y, x - 1)].dist:
                     self.data[(y, x - 1)].dist = dist
+                    self.data[(y, x - 1)].parent = East
 
             if cell.neighbors & East and not self.data[(y, x + 1)].visited:
-                if cell.neighbors & West and self.data[(y, x - 1)].visited:
+                if cell.parent == West:
                     dist = cell.dist + 2
                 else:
                     dist = cell.dist + 1002
                 if dist < self.data[(y, x + 1)].dist:
                     self.data[(y, x + 1)].dist = dist
+                    self.data[(y, x + 1)].parent = West
 
         return self.data[self.end].dist
 
 
-
-
 if __name__ == "__main__":
-    sys.argv = ["", "input3"]
+    sys.argv = ["", "input"]
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} input", file=sys.stderr)
         exit(1)
@@ -154,7 +141,5 @@ if __name__ == "__main__":
     with open(sys.argv[1], "rt") as f:
         data = f.read().rstrip()
     grid = Grid.from_string(data)
-    print(data)
     print(f"Shortest path: {grid.dijkstra()}")
-    print(data)
-    print(grid)
+    # print(grid)
