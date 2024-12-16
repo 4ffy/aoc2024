@@ -214,17 +214,29 @@ bool can_move(grid_t *grid, long y, long x, char dir)
 	switch (dir) {
 	case '^':
 		if (c == '[') {
-			return false;
+			return in_bounds(grid, y - 1, x) &&
+				   in_bounds(grid, y - 1, x + 1) &&
+				   can_move(grid, y - 1, x, '^') &&
+				   can_move(grid, y - 1, x + 1, '^');
 		} else if (c == ']') {
-			return false;
+			return in_bounds(grid, y - 1, x) &&
+				   in_bounds(grid, y - 1, x - 1) &&
+				   can_move(grid, y - 1, x, '^') &&
+				   can_move(grid, y - 1, x - 1, '^');
 		} else {
 			return in_bounds(grid, y - 1, x) && can_move(grid, y - 1, x, '^');
 		}
 	case 'v':
 		if (c == '[') {
-			return false;
+			return in_bounds(grid, y + 1, x) &&
+				   in_bounds(grid, y + 1, x + 1) &&
+				   can_move(grid, y + 1, x, 'v') &&
+				   can_move(grid, y + 1, x + 1, 'v');
 		} else if (c == ']') {
-			return false;
+			return in_bounds(grid, y + 1, x) &&
+				   in_bounds(grid, y + 1, x - 1) &&
+				   can_move(grid, y + 1, x, 'v') &&
+				   can_move(grid, y + 1, x - 1, 'v');
 		} else {
 			return in_bounds(grid, y + 1, x) && can_move(grid, y + 1, x, 'v');
 		}
@@ -276,9 +288,17 @@ bool move(grid_t *grid, long y, long x, char dir)
 	switch (dir) {
 	case '^':
 		if (c == '[') {
-			return false;
+			move(grid, y - 1, x, '^');
+			move(grid, y - 1, x + 1, '^');
+			force_move(grid, y, x, '^');
+			force_move(grid, y, x + 1, '^');
+			return true;
 		} else if (c == ']') {
-			return false;
+			move(grid, y - 1, x, '^');
+			move(grid, y - 1, x - 1, '^');
+			force_move(grid, y, x, '^');
+			force_move(grid, y, x - 1, '^');
+			return true;
 		} else {
 			move(grid, y - 1, x, '^');
 			force_move(grid, y, x, '^');
@@ -286,9 +306,17 @@ bool move(grid_t *grid, long y, long x, char dir)
 		}
 	case 'v':
 		if (c == '[') {
-			return false;
+			move(grid, y + 1, x, 'v');
+			move(grid, y + 1, x + 1, 'v');
+			force_move(grid, y, x, 'v');
+			force_move(grid, y, x + 1, 'v');
+			return true;
 		} else if (c == ']') {
-			return false;
+			move(grid, y + 1, x, 'v');
+			move(grid, y + 1, x - 1, 'v');
+			force_move(grid, y, x, 'v');
+			force_move(grid, y, x - 1, 'v');
+			return true;
 		} else {
 			move(grid, y + 1, x, 'v');
 			force_move(grid, y, x, 'v');
@@ -385,8 +413,11 @@ int main(int argc, char *argv[])
 	to_wide(&wide, &grid);
 
 	move_robot(&grid, moves);
+	move_robot(&wide, moves);
 	// print_grid(&grid);
+	// print_grid(&wide);
 	printf("Narrow GPS: %ld\n", gps(&grid));
+	printf("Wide GPS: %ld\n", gps(&wide));
 
 	free(data);
 	return 0;
