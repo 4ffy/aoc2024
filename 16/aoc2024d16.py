@@ -14,7 +14,7 @@ class Cell:
         self.neighbors = 0
         self.visited = False
         self.dist = float("inf")
-        self.parent = None
+        self.parent = 0
 
     def __str__(self):
         return f"{self.neighbors} {self.visited} {self.dist}"
@@ -99,7 +99,7 @@ class Grid(UserDict):
                     dist = cell.dist + 1002
                 if dist < self.data[(y - 1, x)].dist:
                     self.data[(y - 1, x)].dist = dist
-                    self.data[(y - 1, x)].parent = South
+                    self.data[(y - 1, x)].parent |= South
 
             if cell.neighbors & South and not self.data[(y + 1, x)].visited:
                 if cell.parent == North:
@@ -108,7 +108,7 @@ class Grid(UserDict):
                     dist = cell.dist + 1002
                 if dist < self.data[(y + 1, x)].dist:
                     self.data[(y + 1, x)].dist = dist
-                    self.data[(y + 1, x)].parent = North
+                    self.data[(y + 1, x)].parent |= North
 
             if cell.neighbors & West and not self.data[(y, x - 1)].visited:
                 if cell.parent == East:
@@ -117,7 +117,7 @@ class Grid(UserDict):
                     dist = cell.dist + 1002
                 if dist < self.data[(y, x - 1)].dist:
                     self.data[(y, x - 1)].dist = dist
-                    self.data[(y, x - 1)].parent = East
+                    self.data[(y, x - 1)].parent |= East
 
             if cell.neighbors & East and not self.data[(y, x + 1)].visited:
                 if cell.parent == West:
@@ -126,7 +126,7 @@ class Grid(UserDict):
                     dist = cell.dist + 1002
                 if dist < self.data[(y, x + 1)].dist:
                     self.data[(y, x + 1)].dist = dist
-                    self.data[(y, x + 1)].parent = West
+                    self.data[(y, x + 1)].parent |= West
 
         return self.data[end].dist
 
