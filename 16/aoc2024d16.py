@@ -81,32 +81,28 @@ class Grid(UserDict):
 
         temp = Cell()
         temp.neighbors |= East
-        temp.visited = True
+        temp.visited = False
         self.data[self.start].neighbors |= West
         self.data[(self.start[0], self.start[1] - 1)] = temp
-        queue.append((self.start[0], self.start[1] - 1, temp))
+        queue.append((self.start[0], self.start[1] - 1))
 
         for y in range(self.height):
             for x in range(self.width):
                 self.data[(y, x)].visited = False
                 self.data[(y, x)].dist = float("Inf")
-                if (y, x) == self.start:
-                    self.data[(y, x)].dist = 0
-                queue.append((y, x, self.data[y, x]))
-        while not self.data[self.end].visited:
-            queue = sorted(queue, key=lambda x: x[2].dist, reverse=True)
+                queue.append((y, x))
+        self.data[self.start].dist = 0
+
+        while self.data[self.end].dist == float("Inf"):
+            queue = sorted(queue, key=lambda x: self.data[x].dist, reverse=True)
+
             curr = queue.pop()
-            y, x = curr[:2]
-            cell = curr[-1]
+            y, x = curr
+            cell = self.data[curr]
             cell.visited = True
 
-            if y == 3 and x == 6:
-                print(y, x)
-                print(self)
-
-            if y == 4 and x == 7:
-                print(y, x)
-                print(self)
+            print(y, x)
+            print(self)
 
             dist = 0
             if cell.neighbors & North and not self.data[(y - 1, x)].visited:
@@ -160,4 +156,5 @@ if __name__ == "__main__":
     grid = Grid.from_string(data)
     print(data)
     print(f"Shortest path: {grid.dijkstra()}")
+    print(data)
     print(grid)
