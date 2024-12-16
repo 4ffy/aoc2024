@@ -65,24 +65,26 @@ class Grid(UserDict):
                 data[(y, x)] = cell
         return Grid(data, height, width, start_pos, end_pos)
 
-    def dijkstra(self):
+    def dijkstra(self, start, end, start_dir):
         queue = []
-
-        temp = Cell()
-        temp.neighbors |= East
-        temp.visited = False
-        self.data[self.start].neighbors |= West
-        self.data[(self.start[0], self.start[1] - 1)] = temp
-        queue.append((self.start[0], self.start[1] - 1))
 
         for y in range(self.height):
             for x in range(self.width):
                 self.data[(y, x)].visited = False
                 self.data[(y, x)].dist = float("Inf")
                 queue.append((y, x))
-        self.data[self.start].dist = 0
+        self.data[start].dist = 0
 
-        while self.data[self.end].dist == float("Inf"):
+        if start_dir == North:
+            self.data[start].parent = South
+        if start_dir == South:
+            self.data[start].parent = North
+        if start_dir == West:
+            self.data[start].parent = East
+        if start_dir == East:
+            self.data[start].parent = West
+
+        while self.data[end].dist == float("Inf"):
             queue = sorted(queue, key=lambda x: self.data[x].dist, reverse=True)
             curr = queue.pop()
             y, x = curr
@@ -126,11 +128,21 @@ class Grid(UserDict):
                     self.data[(y, x + 1)].dist = dist
                     self.data[(y, x + 1)].parent = West
 
-        return self.data[self.end].dist
+        return self.data[end].dist
+
+
+def count_shortest_path(forward_grid, reverse_grid):
+    count = 0
+    target = forward_grid[forward_grid.end].dist
+    for y in range(forward_grid.height):
+        for x in range(forward_grid.width):
+            if forward_grid[(y, x)].dist + reverse_grid[(y, x)].dist == target:
+                count += 1
+    return count
 
 
 if __name__ == "__main__":
-    sys.argv = ["", "input"]
+    sys.argv = ["", "input3"]
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} input", file=sys.stderr)
         exit(1)
@@ -141,5 +153,13 @@ if __name__ == "__main__":
     with open(sys.argv[1], "rt") as f:
         data = f.read().rstrip()
     grid = Grid.from_string(data)
-    print(f"Shortest path: {grid.dijkstra()}")
-    # print(grid)
+    grid2 = Grid.from_string(data)
+    print(f"Shortest path: {grid.dijkstra(grid.start, grid.end, East)}")
+    print(grid)
+
+    count = 0
+    grid2.dijkstra(grid2.end, grid2.start, South)
+    count += count_shortest_path(grid, grid2)
+
+    print(grid2)
+    print(f"Number of tiles: {count}")
