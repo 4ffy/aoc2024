@@ -85,13 +85,8 @@ def parse_program(src: str) -> tuple[tuple, list[int]]:
 def sneaky_program(a):
     out = []
     while a != 0:
-        b = a & 7
-        b = b ^ 5
-        c = a >> b
-        b = b ^ c
-        b = b ^ 6
+        out.append(((((a & 7) ^ 5) ^ (a >> ((a & 7) ^ 5))) ^ 6) & 7)
         a = a >> 3
-        out.append(b & 7)
     return out
 
 
