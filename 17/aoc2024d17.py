@@ -25,7 +25,7 @@ class VM:
         }
         return args[self.read_byte()]
 
-    def run(self, target = None):
+    def run(self):
         output = []
         self.ip = 0
         while self.ip < len(self.program):
@@ -57,9 +57,7 @@ class VM:
             # out (output)
             elif op == 5:
                 arg = self.read_combo()
-                output.append(arg & 0b111)
-                if target is not None and target[:len(output)] != output:
-                    return None
+                output.append(arg & 7)
             # bdv (other division)
             elif op == 6:
                 arg = self.read_combo()
@@ -72,9 +70,7 @@ class VM:
                 n = self.ra
                 d = 2**arg
                 self.rc = n // d
-        if target is None or output == target:
-            return output
-        return None
+        return output
 
 
 def parse_program(src: str) -> tuple[tuple, list[int]]:
@@ -84,6 +80,19 @@ def parse_program(src: str) -> tuple[tuple, list[int]]:
     for line in register_src.split("\n"):
         registers.append(int(line.split(": ")[1]))
     return tuple(registers), program
+
+
+def sneaky_program(a):
+    out = []
+    while a != 0:
+        b = a & 7
+        b = b ^ 5
+        c = a >> b
+        b = b ^ c
+        b = b ^ 6
+        a = a >> 3
+        out.append(b & 7)
+    return out
 
 
 if __name__ == "__main__":
@@ -102,13 +111,17 @@ if __name__ == "__main__":
     out = vm.run()
     print(",".join(str(x) for x in out))
 
-    a = 0
+    a = 1
     while True:
-        if a % 1000 == 0:
-            print(a)
-        vm.ra = a
-        out = vm.run(program)
-        if out is not None:
-            print(f"Quine thing at {a}")
-            break
-        a += 1
+        out = sneaky_program(a)
+        if len(out) < len(program):
+            if out == program[-len(out):]:
+                a <<= 3
+            else:
+                a += 1
+        else:
+            if out == program:
+                print(f"Quine at {a}")
+                break
+            else:
+                a += 1
