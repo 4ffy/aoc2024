@@ -82,14 +82,6 @@ def parse_program(src: str) -> tuple[tuple, list[int]]:
     return tuple(registers), program
 
 
-def sneaky_program(a):
-    out = []
-    while a != 0:
-        out.append(((((a & 7) ^ 5) ^ (a >> ((a & 7) ^ 5))) ^ 6) & 7)
-        a = a >> 3
-    return out
-
-
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} input", file=sys.stderr)
@@ -108,15 +100,19 @@ if __name__ == "__main__":
 
     a = 1
     while True:
-        out = sneaky_program(a)
+        vm.ra = a
+        out = vm.run()
         if len(out) < len(program):
-            if out == program[-len(out):]:
+            if out == program[-len(out) :]:
                 a <<= 3
             else:
                 a += 1
-        else:
+        elif len(out) == len(program):
             if out == program:
                 print(f"Quine at {a}")
                 break
             else:
                 a += 1
+        else:
+            print("No quine")
+            break
