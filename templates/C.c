@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
 	string_array_t lines = {0};
 	array_init(lines, char *);
 	split_regex(&lines, data, "\n");
-	for (size_t i = 0; i < lines.size; i++) {
+	for (long i = 0; i < lines.size; i++) {
 		printf("%02ld\t%s\n", i, lines.data[i]);
 	}
 
