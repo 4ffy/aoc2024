@@ -86,8 +86,8 @@ obstacles to the grid."
   (print-grid grid)
   (loop for tile being each hash-value of (grid-tiles grid) do
     (setf (tile-visited tile) nil)
-    (setf (tile-start-dist tile) (floor (/ most-positive-fixnum 2)))
-    (setf (tile-end-dist tile) (floor (/ most-positive-fixnum 2))))
+    (setf (tile-start-dist tile) (floor most-positive-fixnum 2))
+    (setf (tile-end-dist tile) (floor most-positive-fixnum 2)))
   (setf (tile-start-dist (grid-get grid start)) 0)
   (setf (tile-end-dist (grid-get grid start)) (manhattan start end))
   (let ((queue
@@ -114,7 +114,8 @@ obstacles to the grid."
                      (cons y (1+ x))))
              (let ((neighbor (grid-get grid dir)))
                (when (and neighbor (not (tile-visited neighbor)))
-                 (setf (tile-start-dist neighbor) (1+ (tile-start-dist tile)))
+                 (when (> (tile-start-dist neighbor) (1+ (tile-start-dist tile)))
+                   (setf (tile-start-dist neighbor) (1+ (tile-start-dist tile))))
                  (setf (tile-end-dist neighbor) (manhattan dir end))
                  (vector-push-extend dir queue))))
            (sort queue #'> :key (lambda (x) (queue-weight grid x)))))
