@@ -1,26 +1,38 @@
 #include <errno.h>
 #include <regex.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+// Template ====================================================================
+
+[[noreturn]]
+void die(char const *format, ...)
+{
+	va_list args = {0};
+	va_start(args, format);
+	vfprintf(stderr, format, args);
+	va_end(args);
+	exit(1);
+}
+
 #define array_init(arr, type)                                                  \
 	do {                                                                       \
 		(arr).data = calloc(8, sizeof(type));                                  \
-		if ((arr).data == NULL) {                                              \
-			fprintf(stderr, "Out of memory.\n");                               \
-			exit(1);                                                           \
+		if ((arr).data == nullptr) {                                           \
+			die("Out of memory.\n");                                           \
 		}                                                                      \
 		(arr).size = 0;                                                        \
 		(arr).cap = 8;                                                         \
-	} while (0)
+	} while (false)
 
 #define array_deinit(arr)                                                      \
 	do {                                                                       \
 		free((arr).data);                                                      \
 		(arr).size = 0;                                                        \
 		(arr).cap = 0;                                                         \
-	} while (0)
+	} while (false)
 
 #define array_push(arr, type, item)                                            \
 	do {                                                                       \
@@ -28,12 +40,11 @@
 		if ((arr).size == (arr).cap) {                                         \
 			(arr).cap *= 2;                                                    \
 			(arr).data = realloc((arr).data, (arr).cap * sizeof(type));        \
-			if ((arr).data == NULL) {                                          \
-				fprintf(stderr, "Out of memory.\n");                           \
-				exit(1);                                                       \
+			if ((arr).data == nullptr) {                                       \
+				die("Out of memory.\n");                                       \
 			}                                                                  \
 		}                                                                      \
-	} while (0)
+	} while (false)
 
 typedef struct int_array_s {
 	int *data;
@@ -56,25 +67,19 @@ void fclose_wrap(FILE **f) { fclose(*f); }
 char *read_file(char const *filename)
 {
 	[[gnu::cleanup(fclose_wrap)]] FILE *f = fopen(filename, "rb");
-	if (f == NULL) {
-		fprintf(stderr, "Could not open \"%s\": %s\n", filename,
-				strerror(errno));
-		exit(1);
+	if (f == nullptr) {
+		die("Could not open \"%s\": %s\n", filename, strerror(errno));
 	}
-
 	fseek(f, 0L, SEEK_END);
 	long length = ftell(f);
 	rewind(f);
 	char *buf = (char *)malloc(length * sizeof(char) + 1);
-	if (buf == NULL) {
-		fprintf(stderr, "Could not allocate buffer: %s\n", strerror(errno));
-		exit(1);
+	if (buf == nullptr) {
+		die("Could not allocate buffer: %s\n", strerror(errno));
 	}
-
 	long read = fread(buf, sizeof(char), length, f);
 	if (read < length) {
-		fprintf(stderr, "Could not read file \"%s\"\n", filename);
-		exit(1);
+		die("Could not read file \"%s\"\n", filename);
 	}
 	buf[read] = '\0';
 	return buf;
@@ -86,8 +91,7 @@ void split_regex(string_array_t *out, char *src, char const *pat)
 	regex_t re = {0};
 	regmatch_t match[1] = {0};
 	if (regcomp(&re, pat, REG_EXTENDED)) {
-		fprintf(stderr, "Bad regex.\n");
-		exit(1);
+		die("Bad regex '%s'.\n", pat);
 	}
 	out->size = 0;
 	char *substr = src;
@@ -103,11 +107,12 @@ void split_regex(string_array_t *out, char *src, char const *pat)
 	}
 }
 
+// Main program ================================================================
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2) {
-		fprintf(stderr, "Usage: %s input\n", argv[0]);
-		exit(1);
+		die("Usage: %s input\n", argv[0]);
 	}
 	char *data = read_file(argv[1]);
 
