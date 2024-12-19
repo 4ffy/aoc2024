@@ -32,7 +32,7 @@ template <> struct std::hash<Point> {
 	{
 		size_t h1(std::hash<long>{}(p.y));
 		size_t h2(std::hash<long>{}(p.x));
-		return h1 & (h2 << 1);
+		return h1 ^ (h2 << 1);
 	}
 };
 
