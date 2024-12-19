@@ -41,6 +41,9 @@ class Grid(UserDict):
         for line in lines:
             x, y = (int(n) for n in line.split(","))
             points.append((y, x))
+        if n > len(points):
+            print("Point count too large.", file=sys.stderr)
+            exit(1)
         height = 1 + max(p[0] for p in points)
         width = 1 + max(p[1] for p in points)
         for y in range(height):
@@ -60,7 +63,6 @@ class Grid(UserDict):
             tile.end_dist = float("inf")
         self.data[start].start_dist = 0
         self.data[start].end_dist = manhattan(start, end)
-
         queue = PriorityQueue()
         queue.put((self._queue_weight(start), start))
         while not queue.empty():
@@ -72,7 +74,6 @@ class Grid(UserDict):
             tile.visited = True
             if (y, x) == end:
                 return tile.start_dist
-
             for dir in [(y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)]:
                 if dir in self.data and not self.data[dir].visited:
                     self.data[dir].start_dist = 1 + tile.start_dist
@@ -81,17 +82,28 @@ class Grid(UserDict):
 
 
 if __name__ == "__main__":
-    sys.argv = ["", "input"]
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} input", file=sys.stderr)
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} input num_obstacles", file=sys.stderr)
         exit(1)
     if not os.path.exists(sys.argv[1]):
         print(f"File not found: '{sys.argv[1]}'", file=sys.stderr)
         exit(1)
+
+    obstacles = None
+    try:
+        obstacles = int(sys.argv[2])
+    except ValueError:
+        print("Invalid obstacle count.", file=sys.stderr)
+        exit(1)
+    if obstacles < 0:
+        print("Invalid obstacle count.", file=sys.stderr)
+        exit(1)
+
     data = None
     with open(sys.argv[1], "rt") as f:
         data = f.read().rstrip()
-    grid = Grid.from_string(data, 1024)
+
+    grid = Grid.from_string(data, obstacles)
     start = (0, 0)
     end = (grid.height - 1, grid.width - 1)
     print(f"Min steps: {grid.a_star(start, end)}")
