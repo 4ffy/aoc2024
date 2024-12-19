@@ -46,13 +46,13 @@ void die(char const *format, ...)
 		}                                                                      \
 	} while (0)
 
-typedef struct int_array_s {
-	int *data;
+typedef struct long_array_s {
+	long *data;
 	long size;
 	long cap;
-} int_array_t;
+} long_array_t;
 
-void int_array_deinit(int_array_t *i) { array_deinit(*i); }
+void long_array_deinit(long_array_t *l) { array_deinit(*l); }
 
 typedef struct string_array_s {
 	char **data;
@@ -116,8 +116,10 @@ struct sview_s {
 	long size;
 };
 
-#define sview(s)                                                               \
-	(sview_t) { .data = (s), .size = sizeof(s) - 1 }
+static inline sview_t sview_from_string(char *str)
+{
+	return (sview_t){.data = str, .size = (long)strlen(str)};
+}
 
 typedef struct sview_array_s sview_array_t;
 struct sview_array_s {
@@ -219,6 +221,22 @@ bool trie_get(trie_t *trie, sview_t item)
 	return trie->children[idx] ? trie_get(trie->children[idx], next) : false;
 }
 
+long trie_depth(trie_t *trie)
+{
+	bool has_children = false;
+	long max_depth = 0;
+	for (int i = 0; i < TRIE_CHILDREN; i++) {
+		if (trie->children[i]) {
+			has_children = true;
+			long depth = trie_depth(trie->children[i]);
+			if (depth > max_depth) {
+				max_depth = depth;
+			}
+		}
+	}
+	return has_children ? max_depth + 1 : 0;
+}
+
 // Main program ================================================================
 
 void parse_data(trie_t *out_trie, sview_array_t *out_designs, char *src)
@@ -239,8 +257,7 @@ void parse_data(trie_t *out_trie, sview_array_t *out_designs, char *src)
 		die("Bad input format.\n");
 	}
 	for (long i = 0; i < patterns.size; i++) {
-		sview_t temp = {.data = patterns.data[i],
-						.size = strlen(patterns.data[i])};
+		sview_t temp = sview_from_string(patterns.data[i]);
 		trie_insert(out_trie, temp);
 	}
 
@@ -252,8 +269,7 @@ void parse_data(trie_t *out_trie, sview_array_t *out_designs, char *src)
 		die("Bad input format.\n");
 	}
 	for (long i = 0; i < designs.size; i++) {
-		sview_t temp = {.data = designs.data[i],
-						.size = strlen(designs.data[i])};
+		sview_t temp = sview_from_string(designs.data[i]);
 		array_push(*out_designs, sview_t, temp);
 	}
 }
@@ -273,6 +289,34 @@ bool validate_design(trie_t *patterns, sview_t design)
 	return false;
 }
 
+// Unfortunately slower than C++, but I don't have any better ideas.
+long count_build_ways(trie_t *patterns, sview_t design, long_array_t *cache)
+{
+	cache->size = design.size + 1;
+	while (cache->size >= cache->cap) {
+		cache->cap *= 2;
+		cache->data = realloc(cache->data, cache->cap * sizeof(long));
+		if (cache->data == nullptr) {
+			die("Out of memory.\n");
+		}
+	}
+	for (long i = 0; i < cache->size; i++) {
+		cache->data[i] = 0;
+	}
+	cache->data[0] = 1;
+
+	long depth = trie_depth(patterns);
+	for (long i = 0; i <= design.size; i++) {
+		for (long j = 0; j <= depth; j++) {
+			sview_t substr = {.data = design.data + i - j, .size = j};
+			if (i >= j && trie_get(patterns, substr)) {
+				cache->data[i] += cache->data[i - j];
+			}
+		}
+	}
+	return cache->data[design.size];
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2) {
@@ -287,15 +331,22 @@ int main(int argc, char *argv[])
 	sview_array_t designs = {0};
 	array_init(designs, sview_t);
 
+	[[gnu::cleanup(long_array_deinit)]]
+	long_array_t cache = {0};
+	array_init(cache, long);
+
 	parse_data(patterns, &designs, data);
 
 	long count = 0;
+	long build_ways = 0;
 	for (long i = 0; i < designs.size; i++) {
 		if (validate_design(patterns, designs.data[i])) {
 			count++;
+			build_ways += count_build_ways(patterns, designs.data[i], &cache);
 		}
 	}
 	printf("Valid designs: %ld\n", count);
+	printf("Ways to build: %ld\n", build_ways);
 
 	free(data);
 	return 0;
