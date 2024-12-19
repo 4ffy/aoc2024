@@ -2,3 +2,4 @@ Rust/
 input*
 *.out
 main
+compile_flags.txt
