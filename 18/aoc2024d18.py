@@ -2,6 +2,7 @@
 import sys
 import os
 from collections import UserDict
+from queue import PriorityQueue
 
 
 def manhattan(p1, p2):
@@ -49,6 +50,9 @@ class Grid(UserDict):
             objects.pop(points[i])
         return Grid(objects, height, width)
 
+    def _queue_weight(self, pos):
+        return self.data[pos].start_dist + self.data[pos].end_dist
+
     def a_star(self, start, end):
         for tile in self.data.values():
             tile.visited = False
@@ -56,25 +60,24 @@ class Grid(UserDict):
             tile.end_dist = float("inf")
         self.data[start].start_dist = 0
         self.data[start].end_dist = manhattan(start, end)
-        queue = list(self.data.keys())
-        queue.sort(
-            key=lambda x: self.data[x].start_dist + self.data[x].end_dist,
-            reverse=True,
-        )
-        while True:
-            y, x = queue.pop()
-            tile = self.data[(y, x)]
+
+        queue = PriorityQueue()
+        queue.put((self._queue_weight(start), start))
+        while not queue.empty():
+            _, pos = queue.get()
+            y, x = pos
+            tile = self.data[pos]
+            if tile.visited:
+                continue
             tile.visited = True
             if (y, x) == end:
                 return tile.start_dist
+
             for dir in [(y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)]:
                 if dir in self.data and not self.data[dir].visited:
                     self.data[dir].start_dist = 1 + tile.start_dist
                     self.data[dir].end_dist = manhattan(dir, end)
-            queue.sort(
-                key=lambda x: self.data[x].start_dist + self.data[x].end_dist,
-                reverse=True,
-            )
+                    queue.put((self._queue_weight(dir), dir))
 
 
 if __name__ == "__main__":
