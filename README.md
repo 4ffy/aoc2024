@@ -5,12 +5,15 @@ all, If I don't save Christmas, who will? You best be thankful.
 
 ## Languages
 
-In order of importance / consistency:
+Most of the time:
 
  - **Python**: Great for prototyping the others.
  - **Common Lisp**: My "challenge" language.
  - **C and/or C++**: Depending on the problem. Usually I do both if the solution
    is meaningfully different. (Sometimes C++ is just "C with std::vector.")
+
+Occasional:
+
  - **Rust**: Lots of the time a Rust solution is functionally identical to one
    of the above so the extra time spent isn't particularly enlightening.
  - **AWK**: Great for parsing early days, but once you hit graph structures and
