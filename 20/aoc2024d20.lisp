@@ -1,31 +1,32 @@
 (ql:quickload :cl-containers :silent t)
 
-(declaim
- (optimize (speed 3) (safety 0))
- (ftype (function (string) string) file-to-string)
- (ftype (function (character string) list) split-string)
- (ftype (function (tile) boolean) wall-p)
- (ftype (function (tile) boolean) space-p)
- (ftype (function (grid number) t) grid-get)
- (ftype (function (string) grid) parse-grid)
- (ftype (function (grid (complex fixnum))) grid-bfs)
- (ftype (function ((complex fixnum) (complex fixnum)) fixnum) manhattan)
- (ftype (function ((complex fixnum) fixnum) list) manhattan-neighborhood)
- (ftype (function (grid (complex fixnum) (complex fixnum)) fixnum) time-saved)
- (ftype (function (grid fixnum) (vector fixnum)) all-time-saved)
- (ftype (function (grid fixnum fixnum) fixnum) count-good-cheats)
- (ftype (function (grid) t) find-start-pos)
- (ftype (function (list)) run)
- (ftype (function ()) main)
- (inline wall-p)
- (inline space-p)
- (inline grid-get)
- (inline manhattan))
+(declaim (optimize (speed 3) (safety 0))
+         (ftype (function (string) string) file-to-string)
+         (ftype (function (character string) list) split-string)
+         (ftype (function (tile) boolean) wall-p)
+         (ftype (function (tile) boolean) space-p)
+         (ftype (function (grid number) t) grid-get)
+         (ftype (function (string) grid) parse-grid)
+         (ftype (function (grid (complex fixnum))) grid-bfs)
+         (ftype (function ((complex fixnum) (complex fixnum)) fixnum)
+                manhattan)
+         (ftype (function ((complex fixnum) fixnum) list)
+                manhattan-neighborhood)
+         (ftype (function (grid (complex fixnum) (complex fixnum)) fixnum)
+                time-saved)
+         (ftype (function (grid fixnum) (vector fixnum)) all-time-saved)
+         (ftype (function (grid fixnum fixnum) fixnum) count-good-cheats)
+         (ftype (function (grid) t) find-start-pos)
+         (ftype (function (list)) run)
+         (ftype (function nil) main)
+         (inline wall-p)
+         (inline space-p)
+         (inline grid-get)
+         (inline manhattan))
 
 (defun file-to-string (path)
   "Read the file PATH to a string."
-  (with-open-file
-      (stream path)
+  (with-open-file (stream path)
     (let ((data (make-string (file-length stream))))
       (read-sequence data stream)
       (string-right-trim '(#\Newline) data))))
@@ -66,8 +67,7 @@
   (dotimes (y (grid-height obj))
     (dotimes (x (grid-width obj))
       (let ((tile (grid-get obj (complex y x))))
-        (format stream
-                "~3A"
+        (format stream "~3A"
                 (if (wall-p tile)
                     "██"
                     (tile-dist tile)))))
@@ -82,33 +82,34 @@
     (dotimes (y height)
       (dotimes (x width)
         (setf (gethash (complex y x) data)
-              (make-tile :char (char (nth y lines) x)))))
+                (make-tile :char (char (nth y lines) x)))))
     (make-grid :height height :width width :tiles data)))
 
 (defun grid-bfs (grid start-pos)
   "Walk over open tiles in GRID, keeping track of the distance from START-POS."
-  (loop for tile being each hash-value of (grid-tiles grid) do
-    (setf (tile-visited tile) nil))
+  (loop for tile being each hash-value of (grid-tiles grid)
+        do (setf (tile-visited tile) nil))
   (let ((queue (make-instance 'containers:basic-queue)))
-    (setf
-     (tile-visited (grid-get grid start-pos)) t
-     (tile-dist (grid-get grid start-pos)) 0)
+    (setf (tile-visited (grid-get grid start-pos)) t
+          (tile-dist (grid-get grid start-pos)) 0)
     (containers:insert-item queue start-pos)
-    (loop until (containers:empty-p queue) do
-      (let* ((pos (containers:delete-first queue))
-             (tile (grid-get grid pos)))
-        (dolist (dir (list (1- pos) (1+ pos) (- pos #c(0 1)) (+ pos #c(0 1))))
-          (let ((neighbor (grid-get grid dir)))
-            (when (and neighbor (not (tile-visited neighbor)) (space-p neighbor))
-              (setf
-               (tile-visited neighbor) t
-               (tile-dist neighbor) (1+ (tile-dist tile)))
-              (containers:insert-item queue dir))))))))
+    (loop until (containers:empty-p queue)
+          do (let* ((pos (containers:delete-first queue))
+                    (tile (grid-get grid pos)))
+               (dolist
+                   (dir
+                    (list (1- pos) (1+ pos) (- pos #C(0 1)) (+ pos #C(0 1))))
+                 (let ((neighbor (grid-get grid dir)))
+                   (when (and neighbor
+                              (not (tile-visited neighbor))
+                              (space-p neighbor))
+                     (setf (tile-visited neighbor) t
+                           (tile-dist neighbor) (1+ (tile-dist tile)))
+                     (containers:insert-item queue dir))))))))
 
 (defun manhattan (a b)
   "Calculate the Manhattan distance between complex numbers A and B."
-  (+ (abs (- (realpart b) (realpart a)))
-     (abs (- (imagpart b) (imagpart a)))))
+  (+ (abs (- (realpart b) (realpart a))) (abs (- (imagpart b) (imagpart a)))))
 
 (defun manhattan-neighborhood (pos dist)
   "Generate a list of complex numbers representing the Manhattan neighborhood of
@@ -134,19 +135,18 @@ point, return 0."
   "Construct a vector of all positive time saves walking over GRID if allowed to
 cheat for CHEAT-DIST moves."
   (let ((result
-          (make-array 0 :element-type 'fixnum :adjustable t :fill-pointer t)))
+         (make-array 0 :element-type 'fixnum :adjustable t :fill-pointer t)))
     (dotimes (y (grid-height grid))
       (dotimes (x (grid-width grid))
-        (let* ((pos (complex y x))
-               (tile (grid-get grid pos)))
+        (let* ((pos (complex y x)) (tile (grid-get grid pos)))
           (when (space-p tile)
             (dolist (neighbor (manhattan-neighborhood pos cheat-dist))
               (let ((neighbor-tile (grid-get grid neighbor)))
                 (when (and neighbor-tile
                            (space-p neighbor-tile)
                            (> (tile-dist neighbor-tile) (tile-dist tile)))
-                  (vector-push-extend
-                   (time-saved grid pos neighbor) result))))))))
+                  (vector-push-extend (time-saved grid pos neighbor)
+                                      result))))))))
     result))
 
 (defun count-good-cheats (grid cheat-dist threshold)
@@ -156,8 +156,7 @@ least THRESHOLD moves."
 
 (defun find-start-pos (grid)
   "Find the start postition of GRID."
-  (loop for pos being the hash-key
-          using (hash-value tile) of (grid-tiles grid)
+  (loop for pos being the hash-key using (hash-value tile) of (grid-tiles grid)
         when (char= #\S (tile-char tile))
           return pos))
 
@@ -167,12 +166,11 @@ least THRESHOLD moves."
             (cheat-dist (parse-integer (caddr args)))
             (threshold (parse-integer (cadddr args))))
         (grid-bfs grid (find-start-pos grid))
-        (format t
-                "Good cheats: ~D~%"
+        (format t "Good cheats: ~D~%"
                 (count-good-cheats grid cheat-dist threshold)))
       (error "Usage: program input cheat-dist threshold")))
 
 (defun main ()
-  (handler-case (run sb-ext:*posix-argv*)
+  (handler-case (run *posix-argv*)
     (error (c)
       (format *error-output* "~A~%" c))))
