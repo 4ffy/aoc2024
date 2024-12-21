@@ -19,3 +19,8 @@ Occasional:
  - **AWK**: Great for parsing early days, but once you hit graph structures and
    such, you're left with C but with worse array semantics.
  - **Fennel**: If I'm in the mood.
+
+## Incomplete
+
+ - **One star**: Day 16, Day 21
+ - **No stars**: None
