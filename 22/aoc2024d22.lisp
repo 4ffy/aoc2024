@@ -77,7 +77,7 @@
                      (nconc (gethash delta cache-2-lmao) (list price)))))
     (loop for key being each hash-key using (hash-value val) of cache-2-lmao
           do (setf (gethash key cache)
-                   (nconc (gethash key cache) (list (reduce #'max val)))))))
+                   (+ (or (gethash key cache) 0) (reduce #'max val))))))
 
 (defun find-sell-times (start-numbers n)
   (let ((cache (make-hash-table :test #'equal)))
@@ -90,7 +90,7 @@
 
 (defun best-sell-result (cache)
   (loop for val being the hash-values of cache
-        maximize (reduce #'+ val)))
+        maximize val))
 
 (defun run (args)
   (if (= 2 (length args))
@@ -98,9 +98,9 @@
           (let* ((numbers (parse-data (file-to-string (cadr args))))
                  (two-thousandth
                    (mapcar (lambda (x) (nth-secret-number x 2000)) numbers))
-                 (best-sell (best-sell-result (find-sell-times numbers 2000))))
+                 (sell-result (find-sell-times numbers 2000)))
             (format t "Sum of 2000th: ~D~%" (reduce #'+ two-thousandth))
-            (format t "Best sell result: ~D~%" best-sell))
+            (format t "Best sell result: ~D~%" (best-sell-result sell-result)))
           (format t "File not found: '~A'~%" (cadr args)))
       (format t "No input file.~%")))
 
