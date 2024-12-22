@@ -296,7 +296,7 @@ void sum_sell_times(cache_t *cache, long_array_t numbers, long n)
 					cache_insert(cache, sell_time.key,
 								 temp.value + sell_time.value);
 				} else {
-					cache_insert(cache, sell_time.key, temp.value);
+					cache_insert(cache, sell_time.key, sell_time.value);
 				}
 			}
 		}
