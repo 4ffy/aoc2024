@@ -255,6 +255,66 @@ void all_secrets(long_array_t *out, long x, long n)
 	}
 }
 
+void find_sell_times(cache_t *cache, long_array_t secrets)
+{
+	cache_clear(cache);
+	for (int i = 4; i < secrets.size; i++) {
+		long prices[5] = {secrets.data[i - 4] % 10, secrets.data[i - 3] % 10,
+						  secrets.data[i - 2] % 10, secrets.data[i - 1] % 10,
+						  secrets.data[i] % 10};
+		char deltas[4] = {
+			(char)(prices[1] - prices[0]),
+			(char)(prices[2] - prices[1]),
+			(char)(prices[3] - prices[2]),
+			(char)(prices[4] - prices[3]),
+		};
+		char price = prices[4];
+		if (!cache_get(cache, deltas).has_value) {
+			cache_insert(cache, deltas, price);
+		}
+	}
+}
+
+void sum_sell_times(cache_t *cache, long_array_t numbers, long n)
+{
+	[[gnu::cleanup(long_array_deinit)]]
+	long_array_t secrets = {0};
+	array_init(secrets, long);
+
+	[[gnu::cleanup(cache_deinit)]]
+	cache_t cache_2 = {0};
+	array_init(cache_2, entry_t);
+
+	for (long i = 0; i < numbers.size; i++) {
+		all_secrets(&secrets, numbers.data[i], n);
+		find_sell_times(&cache_2, secrets);
+		for (long j = 0; j < cache_2.cap; j++) {
+			entry_t sell_time = cache_2.data[j];
+			if (sell_time.has_value) {
+				entry_t temp = cache_get(cache, sell_time.key);
+				if (temp.has_value) {
+					cache_insert(cache, sell_time.key,
+								 temp.value + sell_time.value);
+				} else {
+					cache_insert(cache, sell_time.key, temp.value);
+				}
+			}
+		}
+	}
+}
+
+long best_sell_time(cache_t cache)
+{
+	long result = 0;
+	for (int i = 0; i < cache.cap; i++) {
+		entry_t entry = cache.data[i];
+		if (entry.has_value && entry.value > result) {
+			result = entry.value;
+		}
+	}
+	return result;
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2) {
@@ -272,6 +332,13 @@ int main(int argc, char *argv[])
 		sum += nth_secret(numbers.data[i], 2000);
 	}
 	printf("Sum of 2000th: %ld\n", sum);
+
+	[[gnu::cleanup(cache_deinit)]]
+	cache_t cache = {0};
+	array_init(cache, entry_t);
+	sum_sell_times(&cache, numbers, 2000);
+
+	printf("Best sell result: %ld\n", best_sell_time(cache));
 
 	free(data);
 	return 0;
