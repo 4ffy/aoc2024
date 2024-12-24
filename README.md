@@ -22,5 +22,5 @@ Occasional:
 
 ## Incomplete
 
- - **One star**: Day 16, Day 21
+ - **One star**: Day 16
  - **No stars**: None
