@@ -165,8 +165,26 @@ def robot(code, map_):
     return "".join(result)
 
 
+def shortest(code, depth, cache={}):
+    if depth == 0:
+        return len(code)
+    if (code, depth) in cache:
+        return cache[(code, depth)]
+    total = 0
+    parts = [x + "A" for x in code.split("A")][:-1]
+    for part in parts:
+        path = robot(part, direction_map)
+        total += shortest(path, depth - 1, cache)
+    cache[(code, depth)] = total
+    return total
+
+
+def real_shortest(code, depth):
+    seq = robot(code, number_map)
+    return shortest(seq, depth)
+
+
 if __name__ == "__main__":
-    sys.argv = ["", "input", 2]
     if len(sys.argv) != 3:
         print(f"Usage: {sys.argv[0]} input robots", file=sys.stderr)
         exit(1)
@@ -179,6 +197,7 @@ if __name__ == "__main__":
             raise ValueError
     except ValueError:
         print("Invalid robot count.")
+        exit(1)
 
     data = None
     with open(sys.argv[1], "rt") as f:
@@ -186,11 +205,7 @@ if __name__ == "__main__":
 
     sum = 0
     for code in data.split("\n"):
-        sub = robot(code, number_map)
-        for i in range(robots):
-            sub = robot(sub, direction_map)
+        length = real_shortest(code, robots)
         number = int(code[:-1])
-        print(sub)
-        sum += number * len(sub)
-
+        sum += number * length
     print(f"Complexity sum: {sum}")
