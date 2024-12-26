@@ -34,7 +34,7 @@ class Grid(UserDict):
         for y in range(self.height):
             for x in range(self.width):
                 cell = self.data[(y, x)]
-                dirs=[]
+                dirs = []
                 for dir in (North, South, West, East):
                     if cell.parent & dir:
                         dirs += dir_map[cell.parent & dir]
@@ -146,7 +146,6 @@ class Grid(UserDict):
     def shortest_count(self, y, x):
         for cell in self.data.values():
             cell.visited = False
-
 
 
 if __name__ == "__main__":
